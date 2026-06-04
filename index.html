@@ -1,0 +1,1298 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>鴻鋌百葉窗採購單</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,Arial,sans-serif;background:#f0f0f0;font-size:14px}
+.step-page{display:none;min-height:100vh;padding:20px}
+.step-page.active{display:block}
+.page-inner{max-width:820px;margin:0 auto}
+.card{background:#fff;border-radius:12px;padding:24px;box-shadow:0 2px 10px rgba(0,0,0,.08);margin-bottom:16px}
+h1{font-size:22px;font-weight:700;color:#1a1a2e;margin-bottom:6px}
+h2{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid #eee}
+.subtitle{font-size:13px;color:#888;margin-bottom:20px}
+.form-row{display:grid;gap:12px;margin-bottom:14px}
+.r2{grid-template-columns:1fr 1fr}
+.r3{grid-template-columns:1fr 1fr 1fr}
+.r4{grid-template-columns:1fr 1fr 1fr 1fr}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-size:12px;font-weight:600;color:#555}
+.field label span{color:#cc0000;margin-left:2px}
+.field input,.field select,.field textarea{padding:8px 10px;border:1.5px solid #ddd;border-radius:7px;font-size:14px;font-family:inherit;width:100%;background:#fff;transition:border .15s}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:#4A90D9}
+.field textarea{resize:vertical;min-height:70px}
+.section-divider{font-size:12px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.5px;padding:10px 0 6px;border-top:1px solid #f0f0f0;margin-top:6px}
+.check-group{display:flex;flex-wrap:wrap;gap:10px;margin-top:4px}
+.check-group label{display:flex;align-items:center;gap:5px;font-size:13px;color:#444;cursor:pointer}
+.check-group input[type=checkbox]{width:15px;height:15px;accent-color:#1a6dcc}
+.btn{padding:11px 24px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
+.btn-primary{background:#1a1a2e;color:#fff}
+.btn-primary:hover{background:#2d2d5e}
+.btn-secondary{background:#fff;color:#1a1a2e;border:2px solid #ddd}
+.btn-secondary:hover{border-color:#1a1a2e}
+.btn-add{background:#fff;color:#1a6dcc;border:2px dashed #1a6dcc;width:100%;padding:12px;font-size:14px;cursor:pointer;font-family:inherit;border-radius:8px}
+.btn-add:hover{background:#EEF5FF}
+.btn-danger{background:#fff;color:#e05;border:2px solid #fcc;font-size:12px;padding:6px 12px;cursor:pointer;border-radius:6px;font-family:inherit}
+.btn-row{display:flex;gap:10px;margin-top:20px;justify-content:flex-end}
+.item-card{border:1.5px solid #e0e0e0;border-radius:10px;padding:18px;margin-bottom:14px;background:#fafafa;position:relative}
+.item-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.item-title{font-size:13px;font-weight:700;color:#1a6dcc}
+.hint-note{font-size:11px;color:#e05;margin-top:3px;line-height:1.4}
+/* 報表 */
+#report-page{background:#fff}
+.report-wrap{max-width:1100px;margin:0 auto;padding:20px}
+.report-header{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:16px}
+.report-info table{width:100%;border-collapse:collapse;font-size:13px}
+.report-info td{padding:3px 6px;border:1px solid #ccc}
+.report-info td:first-child{background:#f5f5f5;font-weight:600;width:100px}
+.report-meta{text-align:right;font-size:12px;color:#666;line-height:1.8}
+.report-meta strong{color:#cc0000}
+.report-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:20px}
+.report-table th{background:#1a1a2e;color:#fff;padding:6px 8px;text-align:center;border:1px solid #333;font-weight:600;font-size:11px}
+.report-table td{padding:5px 8px;border:1px solid #ccc;text-align:center;vertical-align:top}
+.report-table tr:nth-child(even) td{background:#f9f9f9}
+.report-notes{margin-top:16px}
+.report-notes h3{font-size:14px;font-weight:700;margin-bottom:10px;border-bottom:2px solid #1a1a2e;padding-bottom:4px}
+.notes-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.note-item{border:1px solid #ccc;border-radius:6px;padding:10px;font-size:12px;line-height:1.7;background:#fafafa}
+.note-item strong{display:block;color:#1a1a2e;margin-bottom:4px;font-size:13px}
+.print-bar{background:#1a1a2e;padding:12px 20px;display:flex;gap:10px;align-items:center}
+.print-bar span{color:#fff;font-weight:600;font-size:15px;flex:1}
+@media print{.print-bar,.no-print{display:none!important}body{background:#fff}.report-wrap{padding:10px}}
+</style>
+</head>
+<body>
+
+<!-- STEP 1 -->
+<div class="step-page active" id="step1">
+<div class="page-inner">
+  <div style="padding:20px 0 10px">
+    <h1>🪟 鴻鋌百葉窗採購單</h1>
+    <p class="subtitle">請依序填寫，完成後可新增多筆品項，最後彙整列印</p>
+  </div>
+  <div class="card">
+    <h2>📋 訂單基本資料</h2>
+    <div class="form-row r2">
+      <div class="field"><label>訂購日期</label><input type="date" id="s1-date"></div>
+      <div class="field"><label>訂單號碼</label><input type="text" id="s1-no" placeholder="例：HT-2601-01"></div>
+    </div>
+    <div class="form-row r2">
+      <div class="field"><label>客戶名稱</label><input type="text" id="s1-client" placeholder="客戶名稱"></div>
+    </div>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="goStep(2)">下一步：新增品項 →</button>
+  </div>
+</div>
+</div>
+
+<!-- STEP 2 -->
+<div class="step-page" id="step2">
+<div class="page-inner">
+  <div style="padding:20px 0 10px;display:flex;align-items:center;gap:12px">
+    <button class="btn btn-secondary no-print" onclick="goStep(1)">← 返回</button>
+    <div><h1>品項管理</h1><p class="subtitle" id="s2-subtitle">案名：—</p></div>
+  </div>
+  <div class="card">
+    <h2>已新增品項</h2>
+    <div id="item-summary"><p style="color:#aaa;font-size:13px;text-align:center;padding:20px">尚未新增任何品項</p></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+      <button class="btn btn-add" onclick="openForm('hinge')">＋ 新增框形樣式（花邊/合頁）</button>
+      <button class="btn btn-add" onclick="openForm('track')">＋ 新增軌道樣式（摺疊/移門）</button>
+    </div>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="goReport()">📄 產生報表 →</button>
+  </div>
+</div>
+</div>
+
+<!-- STEP 3a 框形 -->
+<div class="step-page" id="step-hinge">
+<div class="page-inner">
+  <div style="padding:20px 0 10px;display:flex;align-items:center;gap:12px">
+    <button class="btn btn-secondary" onclick="goStep(2)">← 返回品項列表</button>
+    <div><h1>🔩 框形樣式（花邊/合頁）</h1>
+    <p class="subtitle">Item <span id="hinge-item-no">1</span>｜填寫完成後點儲存</p></div>
+  </div>
+  <div class="card">
+
+    <!-- 1. 基本資料 -->
+    <div class="form-row r3">
+      <div class="field"><label>PROGRAM</label>
+        <select id="h-program"><option>Classic</option><option>Premium</option></select></div>
+      <div class="field"><label>房間號 ROOM</label>
+        <select id="h-room"><option value="">-- 選擇 --</option>
+          <option>客廳</option><option>主臥室</option><option>臥室</option><option>餐廳</option>
+          <option>廚房</option><option>書房</option><option>浴室</option><option>小孩房</option>
+          <option>孝親房</option><option>辦公室</option><option>衛生間</option><option>閣樓</option>
+          <option>樓梯</option><option>Other</option></select></div>
+      <div class="field"><label>自訂房間名稱</label>
+        <input type="text" id="h-room-custom" placeholder="例：3F主臥右門"></div>
+    </div>
+    <div class="form-row r3">
+      <div class="field"><label>電動 MOTORIZED SHUTTER</label>
+        <select id="h-motor"><option>NO</option><option>YES</option></select></div>
+      <div class="field"><label>安裝類型 Installation Method</label>
+        <select id="h-install"><option>Panel With Frame</option><option>Panel Only</option></select></div>
+    </div>
+    <div class="form-row r3">
+      <div class="field"><label>數量 Shutter Qty</label>
+        <input type="number" id="h-qty" value="1" min="1"></div>
+      <div class="field"><label>百葉窗顏色 Color</label>
+        <select id="h-color"></select></div>
+      <div class="field"><label>合頁顏色 Hinge Color</label>
+        <select id="h-hinge-color">
+          <option>Pure White</option><option>Pearl</option><option>Bisque</option>
+          <option>Black</option><option>Antique Brass</option><option>Bright Brass</option>
+          <option>Nickel Plated</option><option>Stainless Steel</option>
+          <option>Option 3 Hidden Hinge</option></select></div>
+    </div>
+    <div class="form-row r3">
+      <div class="field"><label>材質 Material</label>
+        <select id="h-material"><option value="">-- 選擇 --</option>
+          <option>椴木</option><option>桐木</option><option>松木</option><option>複合木</option><option>PVC</option></select></div>
+    </div>
+
+    <div class="section-divider">葉片與拉桿</div>
+    <div class="form-row r3">
+      <div class="field"><label>葉片尺寸 LOUVRE SIZE</label>
+        <select id="h-louvre"><option>63mm Elliptical Louver</option><option>77mm Elliptical Louver</option><option>89mm Elliptical Louver</option><option>114mm Elliptical Louver</option></select></div>
+      <div class="field"><label>固定葉片 Fixed Louver</label>
+        <select id="h-fixed-louver"><option value="">-- 無 --</option><option>Fixed</option></select></div>
+      <div class="field"><label>拉桿類型 Tilt Rod Position</label>
+        <select id="h-rod"><option>Centre(正常)</option><option>齒輪齒條Easy Tilt</option></select></div>
+    </div>
+    <div class="form-row r2">
+      <div class="field"><label>拉桿分段 Split Tilt Rod Location</label>
+        <select id="h-split-rod" onchange="toggleHSplitRod()">
+          <option>None</option>
+          <option>中板上部拉桿從中間分段Split Tilt Rod Half Way Above Mid Rail</option>
+          <option>上部氣窗拉桿從中間分段Split Tilt Rod Half Way for top panel</option>
+          <option>下部氣窗拉桿從中間分段Split Tilt Rod Half Way for bottom panel</option>
+          <option>上下部氣窗拉桿從中間分段Split Tilt Rod Half Way for top &amp; bottom panels</option>
+          <option>自定義</option></select></div>
+      <div id="h-split-rod-custom-row" style="display:none;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="field">
+          <label>拉桿分段 1st (mm)</label>
+          <input type="number" id="h-split-rod-custom" placeholder="例：647"></div>
+        <div class="field">
+          <label>拉桿分段 2nd (mm)</label>
+          <input type="number" id="h-split-rod-custom2" placeholder="例：1627"></div>
+      </div>
+    </div>
+
+    <div class="form-row r2">
+      <div class="field"><label>雙層氣窗 Double Hung</label>
+        <select id="h-dhung" onchange="toggleHDhung()">
+          <option>NO</option>
+          <option>Yes(雙層結構相同same panel config)</option>
+          <option>Yes(雙層結構不同different panel config)</option></select></div>
+    </div>
+    <div class="form-row r2" id="h-dhung-loc-row" style="display:none">
+      <div class="field"><label>水平T位置 Double Hung Location</label>
+        <select id="h-dhloc" onchange="toggleHDhloc()">
+          <option value="">-- 無 --</option>
+          <option>在中心At Centre</option>
+          <option>自定義Custom</option></select></div>
+    </div>
+    <div id="h-dhloc-custom-row" style="display:none" class="form-row r2">
+      <div class="field"><label>水平T自定義位置 (mm)</label>
+        <input type="number" id="h-dhloc-custom" placeholder="例：1200"></div>
+    </div>
+    <div class="form-row r2" id="h-htbar-row-wrap" style="display:none">
+      <div class="field"><label>水平T設定 Horizontal T-Post</label>
+        <select id="h-htbar" onchange="toggleHHtbar()">
+          <option>不需要水平T(None Horizontal T-Post)</option>
+          <option>需要水平T(Required Horizontal T-Post)</option></select></div>
+      <div class="field" id="h-htbar-size-row" style="display:none">
+        <label>水平T尺寸 Horizontal T-Post Size</label>
+        <select id="h-htbar-size">
+          <option>44mm Chamfer T-Post (L/Z/HS)</option>
+          <option>25mm T-Post</option></select></div>
+    </div>
+
+    <div class="section-divider">PANEL 結構</div>
+    <!-- 主結構 + 下部結構並排（NORMAN 排版） -->
+    <div class="form-row r2">
+      <div class="field">
+        <label>PANEL 結構 Panel Configuration</label>
+        <div style="display:flex;gap:6px;align-items:center">
+          <select id="h-panel" onchange="hPanelCalc()" style="width:100px;flex-shrink:0">
+            <option value="">Other ▾</option>
+            <option>L</option><option>R</option><option>L-DR</option><option>LL</option><option>RR</option>
+            <option>LRR</option><option>LLR</option><option>LLRR</option><option>LTLRTR</option>
+            <option>Other</option></select>
+          <input type="text" id="h-panel-custom" placeholder="例：LRTLRCLR" oninput="hPanelCalc()" style="flex:1">
+        </div>
+        <div class="hint-note">T:T-Post　C:Corner Post(90°)　B:Bay Post　D:擋光豎柱　G:單扇不等寬</div>
+      </div>
+      <!-- 下部結構：選雙層結構不同時顯示在旁邊 -->
+      <div class="field" id="h-panel-lower-col" style="display:none">
+        <label>氣窗下部結構 Panel Config in lower section</label>
+        <input type="text" id="h-panel-lower" placeholder="例：LTRTLTR" oninput="hLowerCalc()">
+        <div class="hint-note">與上部結構相同代號</div>
+      </div>
+    </div>
+    <div class="form-row" style="display:grid;grid-template-columns:120px 1fr 1fr;gap:12px;align-items:start">
+      <div class="field"><label>Panel 數量（自動）</label>
+        <input type="number" id="h-panel-qty" placeholder="自動偵測"></div>
+      <div class="field"><label>豎柱 STILE</label>
+        <select id="h-stile">
+          <option>41.3mm正常豎柱</option><option>50mm正常豎柱</option><option>57mm正常豎柱</option>
+          <option>41.3mm缺口豎柱</option><option>50mm缺口豎柱</option><option>57mm缺口豎柱</option>
+          <option>41.3mm擋光豎柱</option><option>50mm擋光豎柱</option><option>57mm擋光豎柱</option></select></div>
+      <div class="field" id="h-stile-lower-col" style="display:none"><label>下部豎柱 STILE</label>
+        <select id="h-stile-lower">
+          <option>41.3mm正常豎柱</option><option>50mm正常豎柱</option><option>57mm正常豎柱</option>
+          <option>41.3mm缺口豎柱</option><option>50mm缺口豎柱</option><option>57mm缺口豎柱</option>
+          <option>41.3mm擋光豎柱</option><option>50mm擋光豎柱</option><option>57mm擋光豎柱</option></select></div>
+    </div>
+
+    <!-- 花邊 -->
+    <div class="form-row r3">
+      <div class="field"><label>花邊類型 Frame Type</label>
+        <select id="h-frame">
+          <option>Beaded L Frame 32mm</option>
+          <option>Beaded L Frame 46mm</option>
+          <option>Beaded L Frame 60mm</option>
+          <option>Vintage L Frame 32mm</option>
+          <option>Vintage L Frame 46mm</option>
+          <option>Vintage L Frame 60mm</option>
+          <option>Vintage L Frame 76mm</option>
+          <option>Camber Deco Frame 50mm</option>
+          <option>Classic Deco Frame 50mm</option>
+          <option>Bullnose Z Frame 42mm</option>
+          <option>Bel Air Z frame 50mm</option>
+          <option>Beaded Z Frame 31mm</option>
+          <option>Vintage Hung Strip 22mm</option>
+        </select></div>
+      <div class="field"><label>塾塊 Build Out (mm)</label>
+        <input type="number" id="h-buildout" value="0"></div>
+    </div>
+    <div class="form-row r4">
+      <div class="field"><label>花邊 左Left</label>
+        <select id="h-fl"><option>YES</option><option>NO</option><option>Sill</option></select></div>
+      <div class="field"><label>花邊 右Right</label>
+        <select id="h-fr"><option>YES</option><option>NO</option><option>Sill</option></select></div>
+      <div class="field"><label>花邊 上Top</label>
+        <select id="h-ft"><option>YES</option><option>NO</option><option>Sill</option></select></div>
+      <div class="field"><label>花邊 下Bottom</label>
+        <select id="h-fb"><option>YES</option><option>NO</option><option>Sill</option></select></div>
+    </div>
+
+    <div class="section-divider">安裝方式 & 尺寸</div>
+    <div class="form-row r3">
+      <div class="field"><label>安裝方式 Mount Type</label>
+        <select id="h-mount"><option>內裝IN</option><option>外裝OUT</option></select></div>
+      <div class="field"><label>尺寸類型 Measure Type</label>
+        <select id="h-measure"><option>外框尺寸MFF</option><option>窗洞尺寸</option></select></div>
+    </div>
+    <div class="form-row r2">
+      <div class="field"><label>寬度 Width (mm)<span>*</span></label>
+        <input type="number" id="h-width" placeholder="例：3100"></div>
+      <div class="field"><label>高度 Height (mm)<span>*</span></label>
+        <input type="number" id="h-height" placeholder="例：2400"></div>
+    </div>
+    <div class="form-row r3">
+      <div class="field"><label>中板位置 Mid Rail Location</label>
+        <select id="h-midtype" onchange="toggleHMid()">
+          <option>無None</option><option>中間Centre</option><option>自定義Custom</option></select></div>
+      <div class="field" id="h-mid1-col" style="display:none">
+        <label>中板 1st (mm)</label>
+        <input type="number" id="h-mid1" placeholder="例：971"></div>
+      <div class="field" id="h-mid2-col" style="display:none">
+        <label>中板 2nd (mm)</label>
+        <input type="number" id="h-mid2" placeholder="選填"></div>
+    </div>
+
+    <!-- T-Post 尺寸：含T時顯示 -->
+    <div id="h-tbar-row" style="display:none" class="form-row r2">
+      <div class="field"><label>T-Post 尺寸 T Post Type</label>
+        <select id="h-tbar">
+          <option>44mm Chamfer T-Post (L/Z/HS)</option>
+          <option>25mm T-Post</option></select></div>
+    </div>
+
+    <!-- 上部 T/C/B 位置（主結構） -->
+    <div id="h-main-tbc-wrap"></div>
+    <!-- 下部 T/C/B 位置（雙層不同時） -->
+    <div id="h-lower-tbc-wrap"></div>
+
+    <div class="section-divider">特殊選項</div>
+    <div class="form-row r2">
+      <div class="field"><label>拉手 Ring Pull</label>
+        <select id="h-ringpull"><option>No</option><option>Yes</option></select></div>
+      <div class="field"><label>把手 Handle</label>
+        <select id="h-handle"><option>No</option><option>Yes</option></select></div>
+    </div>
+    <div class="field" style="margin-bottom:12px">
+      <label>花邊預鑽孔 Predrilled Holes/Plug</label>
+      <div class="check-group">
+        <label><input type="checkbox" id="h-pre-l"> 左Left</label>
+        <label><input type="checkbox" id="h-pre-r"> 右Right</label>
+        <label><input type="checkbox" id="h-pre-t"> 上Top</label>
+        <label><input type="checkbox" id="h-pre-b"> 下Bottom</label>
+      </div>
+    </div>
+    <div class="field" style="margin-bottom:12px">
+      <label>特殊選項 Special Options</label>
+      <div class="check-group" style="flex-direction:column;align-items:flex-start;gap:8px">
+        <label><input type="checkbox" id="h-sp-door"> 用作門Used as Doorway</label>
+        <label><input type="checkbox" id="h-sp-hloose"> 合頁不裝Hinges Loose</label>
+        <label><input type="checkbox" id="h-sp-mloose"> 磁鐵不裝Magnets Loose</label>
+        <label><input type="checkbox" id="h-sp-lmag"> L型衛鐵片L Magnet Catch</label>
+        <label><input type="checkbox" id="h-sp-button"> 用碰珠固定Fixed with Button Catches</label>
+        <label><input type="checkbox" id="h-sp-sbt"> 安全鎖上部Safety Bolt Top</label>
+        <label><input type="checkbox" id="h-sp-sbb"> 安全鎖下部Safety Bolt Bottom</label>
+        <label><input type="checkbox" id="h-sp-sbtb"> 上下部裝安全鎖Safety Bolt Top and Bottom</label>
+        <label><input type="checkbox" id="h-sp-bbt"> 門栓裝上部Barrel Bolt Top</label>
+        <label><input type="checkbox" id="h-sp-bbb"> 門栓裝下部Barrel Bolt Bottom</label>
+        <label><input type="checkbox" id="h-sp-bbtb"> 上下部裝門栓Barrel Bolt Top and Bottom</label>
+        <label><input type="checkbox" id="h-fn-uv"> 百葉窗漆面品質請確保完整，皆須添加抗UV劑，需附帶同色漆瓶</label>
+        <label><input type="checkbox" id="h-fn-plug"> 邊框預鑽螺絲孔塞子，請用提供的木塞製作，也請將木塞噴上同色漆料，另外包裝過來，也額外再附上白色塑膠孔蓋</label>
+        <label><input type="checkbox" id="h-fn-stile"> 木紋色57豎柱不採用&lt;指接&gt;豎柱，一律使用整片板材方式製作</label>
+        <label><input type="checkbox" id="h-fn-tpost"> 垂直T柱厚度尺寸務必匹配花邊厚度尺寸，每支T柱請務必標示由左至右T1、T2、T3，每支T柱也請確實標明「上」跟「下」</label>
+        <label><input type="checkbox" id="h-fn-drill"> 花邊蓋片正面皆默認需預鑽孔，切記不要鑽到合頁鉸鏈位置</label>
+      </div>
+    </div>
+    <div class="field">
+      <label>特殊備註 Special Instructions</label>
+      <textarea id="h-notes" placeholder="填寫特殊備註..."></textarea>
+    </div>
+    <div class="section-divider">🪵 木料訂購 Custom Timbers（選填）</div>
+    <div id="h-timber-list"></div>
+    <button class="btn btn-add" style="margin-top:4px" onclick="addTimber('h')">＋ 新增木料</button>
+  </div>
+  <div class="card">
+    <div class="section-divider" style="margin:-20px -20px 16px">📷 現場參考圖片（選填）</div>
+    <div id="h-img-list" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px"></div>
+    <label style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;background:#f5f9ff;border:2px dashed #1a6dcc;border-radius:8px;padding:10px 18px;font-size:13px;color:#1a6dcc;font-weight:600">
+      📎 選擇圖片（可多選）
+      <input type="file" accept="image/*" multiple style="display:none" onchange="addImages('h',this)">
+    </label>
+    <div style="font-size:11px;color:#aaa;margin-top:6px">支援 JPG、PNG、HEIC，圖片將附在報表備註中</div>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-secondary" onclick="goStep(2)">取消</button>
+    <button class="btn btn-primary" onclick="saveItem('hinge')">✓ 儲存此品項</button>
+  </div>
+</div>
+</div>
+
+<!-- STEP 3b 軌道 -->
+<div class="step-page" id="step-track">
+<div class="page-inner">
+  <div style="padding:20px 0 10px;display:flex;align-items:center;gap:12px">
+    <button class="btn btn-secondary" onclick="goStep(2)">← 返回品項列表</button>
+    <div><h1>🛤 軌道樣式（摺疊/移門）</h1>
+    <p class="subtitle">Item <span id="track-item-no">1</span>｜填寫完成後點儲存</p></div>
+  </div>
+  <div class="card">
+    <div class="form-row r3">
+      <div class="field"><label>PROGRAM</label>
+        <select id="t-program"><option>Classic</option><option>Premium</option></select></div>
+      <div class="field"><label>房間號 ROOM</label>
+        <select id="t-room"><option value="">-- 選擇 --</option>
+          <option>客廳</option><option>主臥室</option><option>臥室</option><option>餐廳</option>
+          <option>廚房</option><option>書房</option><option>浴室</option><option>小孩房</option>
+          <option>孝親房</option><option>辦公室</option><option>衛生間</option><option>閣樓</option>
+          <option>樓梯</option><option>Other</option></select></div>
+      <div class="field"><label>自訂房間名稱</label>
+        <input type="text" id="t-room-custom" placeholder="例：客廳"></div>
+    </div>
+    <div class="form-row r3">
+      <div class="field"><label>電動 MOTORIZED</label>
+        <select id="t-motor"><option>NO</option><option>YES</option></select></div>
+      <div class="field"><label>材質 Material</label>
+        <select id="t-material"><option value="">-- 選擇 --</option>
+          <option>椴木</option><option>桐木</option><option>松木</option><option>複合木</option><option>PVC</option></select></div>
+      <div class="field"><label>數量 Shutter Qty</label>
+        <input type="number" id="t-qty" value="1" min="1"></div>
+    </div>
+
+    <div class="section-divider">滑軌系統</div>
+    <div class="form-row r3">
+      <div class="field"><label>滑軌系統</label>
+        <select id="t-track-type" onchange="toggleTFloating()">
+          <option>90度 Bi-fold(90 degree bifold)</option>
+          <option>移門Sliding-With Louvres in open</option>
+          <option>移門Sliding-With Louvres in closed</option></select></div>
+      <div class="field"><label>安裝方式 Mount Type</label>
+        <select id="t-mount">
+          <option>外裝OUT</option><option>內裝IN</option></select></div>
+      <div class="field" id="t-floating-row"><label>浮動百葉門 Floating Panels</label>
+        <select id="t-floating"><option>Yes</option><option>No</option></select></div>
+    </div>
+
+    <div class="section-divider">尺寸</div>
+    <div class="form-row r3">
+      <div class="field"><label>尺寸類型 Measure Type</label>
+        <select id="t-measure"><option>外框尺寸MFF</option><option>窗洞尺寸</option></select></div>
+      <div class="field"><label>寬度 Width (mm)<span style="color:red">*</span></label>
+        <input type="number" id="t-width" placeholder="例：2844"></div>
+      <div class="field"><label>高度 Height (mm)<span style="color:red">*</span></label>
+        <input type="number" id="t-height" placeholder="例：2536"></div>
+    </div>
+
+    <div class="section-divider">板塊 & 頂板 & 滑軌</div>
+    <div class="form-row r3">
+      <div class="field"><label>板塊 Boxout</label>
+        <select id="t-boxout" onchange="toggleTBoxout()">
+          <option>Plain box out</option><option>No</option></select></div>
+      <div class="field" id="t-boxout-size-row">
+        <label>板塊尺寸 (mm)</label>
+        <select id="t-boxout-size">
+          <option>76mm</option><option>100mm</option><option>150mm</option></select></div>
+      <div class="field"><label>自定義頂板長度 (mm)</label>
+        <input type="number" id="t-header-len" value="0"></div>
+    </div>
+    <div class="form-row r2">
+      <div class="field"><label>上滑軌長度 Top Track (mm)</label>
+        <input type="number" id="t-top-track" value="0"></div>
+      <div class="field"><label>下滑軌長度 Bottom Track (mm)</label>
+        <input type="number" id="t-bot-track" value="0"></div>
+    </div>
+
+    <div class="section-divider">葉片與拉桿</div>
+    <div class="form-row r3">
+      <div class="field"><label>葉片尺寸 LOUVRE SIZE</label>
+        <select id="t-louvre"><option>63mm Elliptical Louver</option><option>77mm Elliptical Louver</option><option>89mm Elliptical Louver</option><option>114mm Elliptical Louver</option></select></div>
+      <div class="field"><label>固定葉片 Fixed Louver</label>
+        <select id="t-fixed-louver"><option value="">-- 無 --</option><option>Fixed</option></select></div>
+      <div class="field"><label>拉桿類型 Tilt Rod</label>
+        <select id="t-rod"><option>齒輪齒條Easy Tilt</option><option>Centre(正常)</option></select></div>
+    </div>
+    <div class="form-row r2">
+      <div class="field"><label>拉桿分段 Split Tilt Rod</label>
+        <select id="t-split-rod" onchange="toggleTSplitRod()">
+          <option>None</option>
+          <option>中板上部拉桿從中間分段Split Tilt Rod Half Way Above Mid Rail</option>
+          <option>上部氣窗拉桿從中間分段Split Tilt Rod Half Way for top panel</option>
+          <option>下部氣窗拉桿從中間分段Split Tilt Rod Half Way for bottom panel</option>
+          <option>上下部氣窗拉桿從中間分段Split Tilt Rod Half Way for top &amp; bottom panels</option>
+          <option>自定義</option></select></div>
+      <div id="t-split-rod-custom-row" style="display:none;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="field">
+          <label>拉桿分段 1st (mm)</label>
+          <input type="number" id="t-split-rod-custom" placeholder="例：1212"></div>
+        <div class="field">
+          <label>拉桿分段 2nd (mm)</label>
+          <input type="number" id="t-split-rod-custom2" placeholder="例：2424"></div>
+      </div>
+    </div>
+
+    <div class="section-divider">顏色</div>
+    <div class="form-row r2">
+      <div class="field"><label>百葉窗顏色 Color</label>
+        <select id="t-color"></select></div>
+      <div class="field" id="t-hinge-color-row"><label>合頁顏色 Hinge Color</label>
+        <select id="t-hinge-color">
+          <option>Pure White</option><option>Pearl</option><option>Bisque</option>
+          <option>Black</option><option>Antique Brass</option><option>Bright Brass</option>
+          <option>Nickel Plated</option><option>Stainless Steel</option>
+          <option>Option 3 Hidden Hinge</option><option>黑色埋入式絞鍊</option></select></div>
+    </div>
+
+    <div class="section-divider">花邊 Frame Option</div>
+    <div class="form-row r4">
+      <div class="field"><label>上 Top</label>
+        <select id="t-ft"><option>YES</option><option>NO</option></select></div>
+      <div class="field"><label>下 Bottom</label>
+        <select id="t-fb"><option>YES</option><option>NO</option></select></div>
+      <div class="field"><label>擋光條左 Light Block Left</label>
+        <select id="t-lbl"><option>YES</option><option>NO</option></select></div>
+      <div class="field"><label>擋光條右 Light Block Right</label>
+        <select id="t-lbr"><option>YES</option><option>NO</option></select></div>
+    </div>
+    <div class="form-row r2">
+      <div class="field"><label>側頂飾板 左 Fascia Return Left</label>
+        <select id="t-fascia-l"><option>YES</option><option>NO</option></select></div>
+      <div class="field"><label>側頂飾板 右 Fascia Return Right</label>
+        <select id="t-fascia-r"><option>YES</option><option>NO</option></select></div>
+    </div>
+
+    <div class="section-divider">PANEL 結構</div>
+    <div class="form-row r3">
+      <div class="field"><label>PANEL 結構（下拉）</label>
+        <select id="t-panel" onchange="tPanelCalc()">
+          <option value="">-- 選擇 --</option>
+          <option>FF/FF</option><option>BFFB</option><option>BF</option>
+          <option>FF/FF/FF</option><option>BFF</option><option>FFB</option><option>Other</option></select></div>
+      <div class="field"><label>自定義 Panel 結構</label>
+        <input type="text" id="t-panel-custom" placeholder="例：FF/FF/FF" oninput="tPanelCalc()">
+      </div>
+      <div class="field"><label>Panel 數量（自動計算）</label>
+        <input type="number" id="t-panel-qty" placeholder="自動偵測"></div>
+    </div>
+    <div class="form-row r2">
+      <div class="field"><label>豎柱 STILE</label>
+        <select id="t-stile">
+          <option>41.3mm正常豎柱</option><option>50mm正常豎柱</option><option>57mm正常豎柱</option>
+          <option>41.3mm缺口豎柱</option><option>50mm缺口豎柱</option><option>57mm缺口豎柱</option>
+          <option>41.3mm擋光豎柱</option><option>50mm擋光豎柱</option><option>57mm擋光豎柱</option></select></div>
+    </div>
+
+    <div class="section-divider">中板位置</div>
+    <div class="form-row r3">
+      <div class="field"><label>中板位置 Mid Rail</label>
+        <select id="t-midtype" onchange="toggleTMid()">
+          <option>無None</option><option>中間Centre</option><option>自定義Custom</option></select></div>
+      <div class="field" id="t-mid1-col" style="display:none"><label>中板 1st (mm)</label>
+        <input type="number" id="t-mid1" placeholder="例：1212"></div>
+      <div class="field" id="t-mid2-col" style="display:none"><label>中板 2nd (mm)</label>
+        <input type="number" id="t-mid2" placeholder="選填"></div>
+    </div>
+
+    <div class="section-divider">滑軌選項 Track Option</div>
+    <div class="form-row r3">
+      <div class="field"><label>滑軌供應 Track Supply</label>
+        <select id="t-track-supply">
+          <option>提供上下滑軌Supply Top&amp;Bottom Track</option>
+          <option>只提供上滑軌</option><option>只提供下滑軌</option><option>不提供滑軌</option></select></div>
+      <div class="field"><label>下滑軌類型 Bottom Track Option</label>
+        <select id="t-bot-track-type">
+          <option value="">-- 無 --</option>
+          <option>M Track</option><option>U Track</option>
+          <option>提供下滑軌-下滑軌M型(白色)</option>
+          <option>提供下滑軌-下滑軌M型(鋁色)</option>
+          <option>提供下滑軌-下滑軌U型(有翅膀)鋁色</option>
+          <option>提供ㄇ型下滑槽.使用定位器</option>
+          <option>下方無軌道只要固定轉軸座即可</option></select></div>
+      <div class="field"><label>下滑軌鑲螺釘孔</label>
+        <select id="t-bot-drill"><option>NO</option><option>YES</option></select></div>
+    </div>
+    <div class="form-row r2">
+      <div class="field"><label>上滑軌顏色 Top Track Color</label>
+        <input type="text" id="t-top-color" placeholder="例：Bright White"></div>
+      <div class="field"><label>下滑軌顏色 Bottom Track Color</label>
+        <input type="text" id="t-bot-color" placeholder="例：Metallic Gray"></div>
+    </div>
+
+    <div class="section-divider">拉手 & 特殊選項</div>
+    <div class="form-row r2">
+      <div class="field"><label>拉手 Ring Pull</label>
+        <select id="t-ringpull"><option>No</option><option>Yes</option></select></div>
+      <div class="field"><label>把手 Handle</label>
+        <select id="t-handle"><option>No</option><option>Yes</option></select></div>
+    </div>
+    <div class="field" style="margin-bottom:12px">
+      <label>特殊選項 Special Options</label>
+      <div class="check-group" style="flex-direction:column;align-items:flex-start;gap:8px">
+        <label><input type="checkbox" id="t-sp-rabbet"> 所有Panels之間採用Rabbet Stile</label>
+        <label><input type="checkbox" id="t-sp-efascia"> 額外上飾板Extra Fascia</label>
+        <label><input type="checkbox" id="t-sp-split"> Top and bottom track split at Center</label>
+        <label><input type="checkbox" id="t-fn-uv"> 百葉窗漆面品質請確保完整，皆須添加抗UV劑，需附帶同色漆瓶</label>
+        <label><input type="checkbox" id="t-fn-pulley"> 上方滑輪豎柱請铣槽我司提供的U型五金零配件</label>
+        <label><input type="checkbox" id="t-fn-pivot"> 下方彈性消軸請配上我司提供的白色彈性消軸</label>
+        <label><input type="checkbox" id="t-fn-stile"> 木紋色57豎柱不採用&lt;指接&gt;豎柱，一律使用整片板材方式製作</label>
+      </div>
+    </div>
+    <div class="field">
+      <label>特殊備註 Special Instructions</label>
+      <textarea id="t-notes" placeholder="填寫特殊備註..."></textarea>
+    </div>
+    <div class="section-divider">🪵 木料訂購 Custom Timbers（選填）</div>
+    <div id="t-timber-list"></div>
+    <button class="btn btn-add" style="margin-top:4px" onclick="addTimber('t')">＋ 新增木料</button>
+  </div>
+  <div class="card">
+    <div class="section-divider" style="margin:-20px -20px 16px">📷 現場參考圖片（選填）</div>
+    <div id="t-img-list" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px"></div>
+    <label style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;background:#f5f9ff;border:2px dashed #1a6dcc;border-radius:8px;padding:10px 18px;font-size:13px;color:#1a6dcc;font-weight:600">
+      📎 選擇圖片（可多選）
+      <input type="file" accept="image/*" multiple style="display:none" onchange="addImages('t',this)">
+    </label>
+    <div style="font-size:11px;color:#aaa;margin-top:6px">支援 JPG、PNG、HEIC，圖片將附在報表備註中</div>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-secondary" onclick="goStep(2)">取消</button>
+    <button class="btn btn-primary" onclick="saveItem('track')">✓ 儲存此品項</button>
+  </div>
+</div>
+</div>
+
+<!-- REPORT -->
+<div class="step-page" id="report-page">
+  <div class="print-bar no-print">
+    <span>Order Shutters</span>
+    <button class="btn" style="background:#4A90D9;color:#fff" onclick="window.print()">🖨 列印 / 儲存PDF</button>
+    <button class="btn btn-secondary no-print" onclick="goStep(2)">← 返回編輯</button>
+  </div>
+  <div class="report-wrap">
+    <h2 style="font-size:20px;font-weight:700;margin-bottom:14px">Order Information(Master/Detail) Region:</h2>
+    <div class="report-header">
+      <div class="report-info">
+        <table>
+          <tr><td>客戶名稱</td><td id="r-client">—</td></tr>
+          <tr><td>訂單號碼</td><td id="r-no">—</td></tr>
+          <tr><td>發單日期</td><td id="r-date">—</td></tr>
+        </table>
+      </div>
+    </div>
+    <h3 style="font-size:14px;font-weight:700;margin-bottom:8px;border-bottom:2px solid #1a1a2e;padding-bottom:4px">Shutters：</h3>
+    <table class="report-table">
+      <thead>
+        <tr>
+          <th>No</th><th>房間號 Room</th><th>尺寸類型 Measure Type</th><th>寬度 Width(mm)</th><th>高度 Height(mm)</th>
+          <th>安裝方式 Mounting Type</th><th>數量 Shutter Qty</th><th>Panel數量</th><th>材質 Material</th>
+          <th>葉片尺寸 LOUVRE SIZE</th><th>顏色 Color</th><th>中板位置 Mid Rail Location</th><th>PANEL結構 Panel Configuration</th>
+          <th>合頁顏色 Hinge Color</th><th>花邊尺寸 Frame Type</th>
+          <th>左 Left</th><th>右 Right</th><th>上 Top</th><th>下 Bottom</th>
+          <th>滑軌系統 Track option</th><th>T-Post</th><th>拉桿類型 Tiltrod Position</th><th>材積數</th>
+        </tr>
+      </thead>
+      <tbody id="report-tbody"></tbody>
+    </table>
+    <div class="report-notes">
+      <h3>備註：</h3>
+      <div class="notes-grid" id="report-notes"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const WHITE_COLORS=['101 Pure white','102 Extreme White','103 Silk White','104 slaked lime','105 wimbourne white','106 strong white','107 school house white','108 milky white','109 morning dew','110 portland stone','111 sea mist','112 Sycamore','113 timberwolf','114 Marl grey','115 Cool grey','116 Vanilla grey','117 Pine needles grey','118 Marble grey','119 Traffic gray','120 charcoal grey','121 Stone Gray','911 Matt black覆蓋色10%啞光','912 Flat Black','913 Black'];
+const WOOD_COLORS=['601 Nature','602 Oak','603 Chestnut','604 Pecan nut','605 Red mahogany','606 Rose','607 Mahogany','608 Black walnut','609 Pebble','610 Limed white','611 Mist','612 Driftwood','613 Rich walnut','614 Werthered Teak','615 Rustic Gray'];
+const ALL_COLORS=[...WHITE_COLORS,...WOOD_COLORS];
+['h-color','t-color'].forEach(id=>{
+  const s=document.getElementById(id);
+  ALL_COLORS.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;s.appendChild(o);});
+});
+
+let items=[], editIdx=-1;
+
+function goStep(n){
+  document.querySelectorAll('.step-page').forEach(p=>p.classList.remove('active'));
+  if(n===2){
+    document.getElementById('step2').classList.add('active');
+    const clientEl=document.getElementById('s1-client');
+    const noEl=document.getElementById('s1-no');
+    const subtitle=[(clientEl?clientEl.value:''),(noEl?noEl.value:'')].filter(Boolean).join('｜')||'—';
+    document.getElementById('s2-subtitle').textContent='客戶：'+subtitle;
+    renderSummary();
+  } else if(n===1){
+    document.getElementById('step1').classList.add('active');
+  }
+}
+
+function openForm(type, idx=-1){
+  editIdx=idx;
+  document.querySelectorAll('.step-page').forEach(p=>p.classList.remove('active'));
+  if(type==='hinge'){
+    document.getElementById('step-hinge').classList.add('active');
+    document.getElementById('hinge-item-no').textContent=idx>=0?idx+1:items.length+1;
+    if(idx>=0) fillForm('hinge',items[idx]); else clearForm('hinge');
+  } else {
+    document.getElementById('step-track').classList.add('active');
+    document.getElementById('track-item-no').textContent=idx>=0?idx+1:items.length+1;
+    if(idx>=0) fillForm('track',items[idx]); else clearForm('track');
+  }
+}
+
+function clearForm(type){
+  const p=type==='hinge'?'h-':'t-';
+  ['program','room','room-custom','width','height','notes','panel-custom','split-rod-custom'].forEach(f=>{
+    const el=document.getElementById(p+f); if(el) el.value='';
+  });
+  if(type==='hinge'){
+    document.getElementById('h-timber-list').innerHTML='';
+    document.getElementById('h-img-list').innerHTML='';
+    timberCounters.h=0;
+  } else {
+    document.getElementById('t-timber-list').innerHTML='';
+    document.getElementById('t-img-list').innerHTML='';
+    timberCounters.t=0;
+  }
+}
+
+function fillForm(type,d){
+  const p=type==='hinge'?'h-':'t-';
+  const prefix=type==='hinge'?'h':'t';
+  Object.keys(d).forEach(k=>{
+    const el=document.getElementById(p+k);
+    if(!el)return;
+    if(el.type==='checkbox') el.checked=d[k];
+    else el.value=d[k];
+  });
+  // 載入圖片
+  document.getElementById(`${prefix}-img-list`).innerHTML='';
+  if(d.images&&d.images.length) loadImages(prefix, d.images);
+}
+
+// ── 框形邏輯 ──
+function toggleHSplitRod(){
+  const el=document.getElementById('h-split-rod'); if(!el) return;
+  const v=el.value;
+  const row=document.getElementById('h-split-rod-custom-row'); if(row) row.style.display=v==='自定義'?'grid':'none';
+}
+function toggleHDhung(){
+  const el=document.getElementById('h-dhung'); if(!el) return;
+  const v=el.value;
+  const isNO=v==='NO';
+  const locRow=document.getElementById('h-dhung-loc-row');
+  const htbarRow=document.getElementById('h-htbar-row-wrap');
+  if(locRow) locRow.style.display=isNO?'none':'grid';
+  if(htbarRow) htbarRow.style.display=isNO?'none':'grid';
+  if(isNO){
+    const cr=document.getElementById('h-dhloc-custom-row');
+    const sr=document.getElementById('h-htbar-size-row');
+    if(cr) cr.style.display='none';
+    if(sr) sr.style.display='none';
+  }
+  const showLower=v.includes('不同');
+  const lowerCol=document.getElementById('h-panel-lower-col');
+  const lowerWrap=document.getElementById('h-lower-tbc-wrap');
+  const stileLowerCol=document.getElementById('h-stile-lower-col');
+  if(lowerCol) lowerCol.style.display=showLower?'flex':'none';
+  if(lowerWrap&&!showLower) lowerWrap.innerHTML='';
+  if(stileLowerCol) stileLowerCol.style.display=showLower?'block':'none';
+  hPanelCalc();
+}
+function toggleHHtbar(){
+  const el=document.getElementById('h-htbar'); if(!el) return;
+  const v=el.value;
+  const row=document.getElementById('h-htbar-size-row'); if(row) row.style.display=v.includes('Required')?'flex':'none';
+}
+function toggleHMid(){
+  const el=document.getElementById('h-midtype'); if(!el) return;
+  const show=el.value==='自定義Custom';
+  const m1=document.getElementById('h-mid1-col'); if(m1) m1.style.display=show?'flex':'none';
+  const m2=document.getElementById('h-mid2-col'); if(m2) m2.style.display=show?'flex':'none';
+}
+function toggleHMidRail(){ toggleHMid(); }
+function toggleHDhloc(){
+  const el=document.getElementById('h-dhloc'); if(!el) return;
+  const row=document.getElementById('h-dhloc-custom-row');
+  if(row) row.style.display=el.value==='自定義Custom'?'grid':'none';
+}
+function toggleTBoxout(){
+  const el=document.getElementById('t-boxout'); if(!el) return;
+  const row=document.getElementById('t-boxout-size-row'); if(row) row.style.display=el.value==='No'?'none':'flex';
+}
+function toggleTSplitRod(){
+  const el=document.getElementById('t-split-rod'); if(!el) return;
+  const row=document.getElementById('t-split-rod-custom-row'); if(row) row.style.display=el.value==='自定義'?'grid':'none';
+}
+function toggleTMid(){
+  const el=document.getElementById('t-midtype'); if(!el) return;
+  const show=el.value==='自定義Custom';
+  const m1=document.getElementById('t-mid1-col'); if(m1) m1.style.display=show?'flex':'none';
+  const m2=document.getElementById('t-mid2-col'); if(m2) m2.style.display=show?'flex':'none';
+}
+function toggleTFloating(){
+  const el=document.getElementById('t-track-type'); if(!el) return;
+  const isSliding=el.value.includes('移門');
+  const floatRow=document.getElementById('t-floating-row');
+  const hingeRow=document.getElementById('t-hinge-color-row');
+  if(floatRow) floatRow.style.display=isSliding?'none':'flex';
+  if(hingeRow) hingeRow.style.display=isSliding?'none':'flex';
+}
+
+// Panel 自動計算（框形：計算L+R字母數）
+function hPanelCalc(){
+  try{
+    const sel=document.getElementById('h-panel');
+    const customEl=document.getElementById('h-panel-custom');
+    if(!sel||!customEl) return;
+    const src=(customEl.value||sel.value||'').toUpperCase();
+    const upperLR=(src.match(/[LR]/g)||[]).length;
+    const dhungEl=document.getElementById('h-dhung');
+    const dhung=dhungEl?dhungEl.value:'';
+    const qtyEl=document.getElementById('h-panel-qty');
+    if(qtyEl){
+      if(dhung.includes('相同')){
+        qtyEl.value=upperLR*2;
+      } else if(dhung.includes('不同')){
+        const lowerEl=document.getElementById('h-panel-lower');
+        const lowerSrc=(lowerEl?lowerEl.value:'').toUpperCase();
+        const lowerLR=(lowerSrc.match(/[LR]/g)||[]).length;
+        qtyEl.value=upperLR+lowerLR;
+      } else {
+        if(upperLR>0) qtyEl.value=upperLR;
+      }
+    }
+    const tbarRow=document.getElementById('h-tbar-row');
+    if(tbarRow) tbarRow.style.display=/T/.test(src)?'grid':'none';
+    genTCBInputs(src,'h-main-tbc-wrap','h-main');
+  }catch(e){}
+}
+
+// 下部結構計算（同時更新Panel數量）
+function hLowerCalc(){
+  try{
+    const lower=(document.getElementById('h-panel-lower').value||'');
+    genTCBInputs(lower,'h-lower-tbc-wrap','h-lower');
+    // 下部結構改變時也重新算Panel數量
+    hPanelCalc();
+  }catch(e){}
+}
+
+// Panel 自動計算（軌道：計算F+B字母數）
+function tPanelCalc(){
+  try{
+    const sel=document.getElementById('t-panel');
+    const customEl=document.getElementById('t-panel-custom');
+    if(!sel||!customEl) return;
+    const src=(customEl.value||sel.value||'').toUpperCase();
+    const fbCount=(src.match(/[FB]/g)||[]).length;
+    const qtyEl=document.getElementById('t-panel-qty');
+    if(fbCount>0&&qtyEl) qtyEl.value=fbCount;
+  }catch(e){}
+}
+
+// ── 通用：產生 T/C/B 位置欄位（單一序號，避免重複） ──
+function genTCBInputs(src, wrapId, prefix){
+  const wrap=document.getElementById(wrapId);
+  if(!wrap) return;
+  wrap.innerHTML='';
+  const srcUp=(src||'').toUpperCase();
+  const tCount=(srcUp.match(/T/g)||[]).length;
+  const cCount=(srcUp.match(/C/g)||[]).length;
+  const bCount=(srcUp.match(/B/g)||[]).length;
+  if(tCount===0&&cCount===0&&bCount===0) return;
+  const ordinal=n=>['1st','2nd','3rd','4th','5th','6th','7th','8th'][n-1]||`${n}th`;
+  const label=wrapId.includes('lower')?'下部':'上部';
+  let html=`<div style="font-size:12px;font-weight:700;color:#444;margin:10px 0 6px">${label} T型立柱/角柱/海灣角柱位置 T Post/Corner Post/Bay Post Location</div>`;
+
+  // 所有 T、C、B 用同一個序號計數器（位置欄位）
+  let seq=1;
+  const allPositions=[];
+  for(let i=0;i<tCount;i++) allPositions.push({type:'t',idx:i+1,seq:seq++});
+  for(let i=0;i<cCount;i++) allPositions.push({type:'c',idx:i+1,seq:seq++});
+  for(let i=0;i<bCount;i++) allPositions.push({type:'b',idx:i+1,seq:seq++});
+
+  html+=`<div class="form-row" style="grid-template-columns:repeat(auto-fill,minmax(130px,1fr));margin-bottom:8px">`;
+  allPositions.forEach(p=>{
+    html+=`<div class="field"><label>${ordinal(p.seq)}</label><input type="number" id="${prefix}-${p.type}pos-${p.idx}" placeholder="例：${p.type==='t'?647:p.type==='c'?1200:1300}"></div>`;
+  });
+  html+=`</div>`;
+
+  // 海灣角柱度數：B 和 C 各自有一個度數欄位，但標籤統一用序號
+  const bcCount=bCount+cCount;
+  if(bcCount>0){
+    html+=`<div style="font-size:12px;font-weight:700;color:#444;margin:8px 0 4px">${label} 海灣角柱度數 Bay/Corner Post Degree</div>`;
+    html+=`<div class="form-row" style="grid-template-columns:repeat(auto-fill,minmax(130px,1fr));margin-bottom:8px">`;
+    let degSeq=1;
+    for(let i=0;i<cCount;i++){
+      html+=`<div class="field"><label>${ordinal(degSeq++)}</label><input type="number" id="${prefix}-cdeg-${i+1}" placeholder="例：90"></div>`;
+    }
+    for(let i=0;i<bCount;i++){
+      html+=`<div class="field"><label>${ordinal(degSeq++)}</label><input type="number" id="${prefix}-bdeg-${i+1}" placeholder="例：135"></div>`;
+    }
+    html+=`</div>`;
+  }
+  wrap.innerHTML=html;
+}
+
+function collectTCBPositions(prefix){
+  const r={tPos:[],cPos:[],bPos:[],cDeg:[],bDeg:[]};
+  try{
+    for(let i=1;i<=10;i++){
+      const t=document.getElementById(`${prefix}-tpos-${i}`);
+      const c=document.getElementById(`${prefix}-cpos-${i}`);
+      const b=document.getElementById(`${prefix}-bpos-${i}`);
+      const cd=document.getElementById(`${prefix}-cdeg-${i}`);
+      const bd=document.getElementById(`${prefix}-bdeg-${i}`);
+      if(t) r.tPos.push(t.value||'');
+      if(c) r.cPos.push(c.value||'');
+      if(b) r.bPos.push(b.value||'');
+      if(cd) r.cDeg.push(cd.value||'');
+      if(bd) r.bDeg.push(bd.value||'');
+    }
+  }catch(e){}
+  return r;
+}
+
+function hUpperLowerCalc(){
+  // h-panel-upper 已移除，上部即主結構，此函式保留供相容
+}
+
+// ── 儲存品項 ──
+function saveItem(type){
+  const p=type==='hinge'?'h-':'t-';
+  const getV=id=>{const el=document.getElementById(p+id);if(!el)return'';if(el.type==='checkbox')return el.checked;return el.value||'';};
+  const w=getV('width'), h=getV('height');
+  if(!w||!h){alert('請填寫寬度與高度！');return;}
+  const room=getV('room')==='Other'||!getV('room')? getV('room-custom') : getV('room');
+  let d={type,room,program:getV('program'),motor:getV('motor'),material:getV('material'),
+    qty:getV('qty'),measure:getV('measure'),width:w,height:h,
+    louvre:getV('louvre'),rod:getV('rod'),color:getV('color'),
+    'hinge-color':getV('hinge-color'),panel:getV('panel'),'panel-custom':getV('panel-custom'),
+    'panel-qty':getV('panel-qty'),stile:getV('stile'),'stile-lower':getV('stile-lower'),notes:getV('notes'),
+    midtype:getV('midtype'),mid1:getV('mid1'),mid2:getV('mid2'),
+    'split-rod':getV('split-rod'),'split-rod-custom':getV('split-rod-custom'),'split-rod-custom2':getV('split-rod-custom2'),
+  };
+  if(type==='hinge'){
+    Object.assign(d,{
+      mount:getV('mount'),install:getV('install'),concealed:getV('concealed'),
+      'fixed-louver':getV('fixed-louver'),
+      tbar:getV('tbar'),
+      'main-tcb': collectTCBPositions('h-main'),
+      frame:getV('frame'),buildout:getV('buildout'),
+      fl:getV('fl'),fr:getV('fr'),ft:getV('ft'),fb:getV('fb'),
+      dhung:getV('dhung'),dhloc:getV('dhloc'),'dhloc-custom':getV('dhloc-custom'),
+      'panel-lower':getV('panel-lower'),
+      'lower-tcb': collectTCBPositions('h-lower'),
+      htbar:getV('htbar'),'htbar-size':getV('htbar-size'),
+      ringpull:getV('ringpull'),handle:getV('handle'),
+      'pre-l':getV('pre-l'),'pre-r':getV('pre-r'),'pre-t':getV('pre-t'),'pre-b':getV('pre-b'),
+      'sp-door':getV('sp-door'),'sp-hloose':getV('sp-hloose'),'sp-mloose':getV('sp-mloose'),
+      'sp-lmag':getV('sp-lmag'),'sp-button':getV('sp-button'),'sp-sbt':getV('sp-sbt'),
+      'sp-sbb':getV('sp-sbb'),'sp-sbtb':getV('sp-sbtb'),'sp-bbt':getV('sp-bbt'),
+      'sp-bbb':getV('sp-bbb'),'sp-bbtb':getV('sp-bbtb'),
+      'fn-uv':getV('fn-uv'),'fn-plug':getV('fn-plug'),'fn-stile':getV('fn-stile'),
+      'fn-tpost':getV('fn-tpost'),'fn-drill':getV('fn-drill'),
+    });
+  } else {
+    Object.assign(d,{
+      'track-type':getV('track-type'),mount:getV('mount'),floating:getV('floating'),
+      'fixed-louver':getV('fixed-louver'),
+      boxout:getV('boxout'),'boxout-size':getV('boxout-size'),
+      'header-len':getV('header-len'),'top-track':getV('top-track'),'bot-track':getV('bot-track'),
+      'panel-type':getV('panel-type'),
+      ft:getV('ft'),fb:getV('fb'),lbl:getV('lbl'),lbr:getV('lbr'),
+      'fascia-l':getV('fascia-l'),'fascia-r':getV('fascia-r'),
+      'track-supply':getV('track-supply'),'bot-track-type':getV('bot-track-type'),
+      'bot-drill':getV('bot-drill'),'top-color':getV('top-color'),'bot-color':getV('bot-color'),
+      ringpull:getV('ringpull'),handle:getV('handle'),
+      'sp-rabbet':getV('sp-rabbet'),'sp-efascia':getV('sp-efascia'),'sp-split':getV('sp-split'),
+      'fn-uv':getV('fn-uv'),'fn-pulley':getV('fn-pulley'),'fn-pivot':getV('fn-pivot'),'fn-stile':getV('fn-stile'),
+    });
+  }
+  d.timbers=collectTimbers(type==='hinge'?'h':'t');
+  d.images=getImages(type==='hinge'?'h':'t');
+  if(editIdx>=0) items[editIdx]=d; else items.push(d);
+  goStep(2);
+}
+
+function renderSummary(){
+  const el=document.getElementById('item-summary');
+  if(!items.length){el.innerHTML='<p style="color:#aaa;font-size:13px;text-align:center;padding:20px">尚未新增任何品項</p>';return;}
+  el.innerHTML=items.map((it,i)=>`
+    <div class="item-card" id="item-card-${i}">
+      <div class="item-header">
+        <span class="item-title">Item ${i+1}｜${it.type==='hinge'?'🔩 框形':'🛤 軌道'}｜${it.room||'—'}｜${it.width}×${it.height}mm｜${it.color||'—'}</span>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn btn-secondary" style="font-size:12px;padding:5px 12px" onclick="openForm('${it.type}',${i})">編輯</button>
+          <button class="btn btn-danger" id="del-btn-${i}" onclick="showDeleteConfirm(${i})">刪除</button>
+          <span id="del-confirm-${i}" style="display:none;align-items:center;gap:6px">
+            <span style="font-size:12px;color:#e05;font-weight:600">確定刪除？</span>
+            <button class="btn" style="background:#e05;color:#fff;font-size:12px;padding:5px 12px" onclick="deleteItem(${i})">確定</button>
+            <button class="btn btn-secondary" style="font-size:12px;padding:5px 12px" onclick="cancelDelete(${i})">取消</button>
+          </span>
+        </div>
+      </div>
+      <div style="font-size:12px;color:#666;display:flex;flex-wrap:wrap;gap:12px">
+        <span>材質：${it.material||'—'}</span>
+        <span>葉片：${it.louvre||'—'}</span>
+        <span>Panel：${it['panel-custom']||it.panel||'—'}</span>
+        <span>豎柱：${it.stile||'—'}</span>
+        <span>數量：${it.qty||1}</span>
+      </div>
+    </div>`).join('');
+}
+
+function showDeleteConfirm(i){
+  document.getElementById(`del-btn-${i}`).style.display='none';
+  document.getElementById(`del-confirm-${i}`).style.display='flex';
+}
+function cancelDelete(i){
+  document.getElementById(`del-btn-${i}`).style.display='';
+  document.getElementById(`del-confirm-${i}`).style.display='none';
+}
+function deleteItem(i){items.splice(i,1);renderSummary();}
+
+function goReport(){
+  if(!items.length){alert('請至少新增一筆品項！');return;}
+  document.querySelectorAll('.step-page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('report-page').classList.add('active');
+  const today=new Date().toLocaleDateString('zh-TW');
+  document.getElementById('r-client').textContent=document.getElementById('s1-client').value||'—';
+  document.getElementById('r-no').textContent=document.getElementById('s1-no').value||'—';
+  document.getElementById('r-date').textContent=document.getElementById('s1-date').value||today;
+  function calcM2(w,h){if(!w||!h)return'—';return((+w/1000)*(+h/1000)*10.89).toFixed(2);}
+  document.getElementById('report-tbody').innerHTML=items.map((it,i)=>{
+    const isTrack=it.type==='track';
+    const isSliding=isTrack&&(it['track-type']||'').includes('移門');
+    // 軌道花邊全NO時表格不顯示
+    const allFrameNo=isTrack&&it.ft==='NO'&&it.fb==='NO'&&it.lbl==='NO'&&it.lbr==='NO';
+    const fl=allFrameNo?'':( it.fl||it.lbl||'—');
+    const fr=allFrameNo?'':( it.fr||it.lbr||'—');
+    const ft=allFrameNo?'':( it.ft||'—');
+    const fb=allFrameNo?'':( it.fb||'—');
+    // 軌道：花邊Frame Type欄位空白（滑軌系統名稱移至備註）
+    const frameInfo=it.type==='hinge'?(it.frame||'—'):'—';
+    const hingeColorDisplay=isSliding?'—':(it['hinge-color']||'—');
+    const mid=(()=>{
+      const type=it.midtype||'無None';
+      if(type==='無None') return '無None';
+      if(type==='中間Centre') return '中間Centre';
+      // 自定義：顯示 1st:xxx 2nd:xxx
+      const parts=[];
+      if(it.mid1) parts.push(`1st:${it.mid1}`);
+      if(it.mid2) parts.push(`2nd:${it.mid2}`);
+      return parts.length?parts.join(' '):'自定義';
+    })();
+    const pc=it['panel-custom']? it['panel-custom'] : (it.panel||'—');
+    const mountDisplay=it.mount||it.install||'—';
+    const tpostDisplay=it.type==='hinge'?(it.tbar||'—'):'—';
+    return `<tr><td>${i+1}</td><td>${it.room||'—'}</td><td>${it.measure||'—'}</td>
+      <td>${it.width}</td><td>${it.height}</td><td>${mountDisplay}</td>
+      <td>${it.qty||1}</td><td>${it['panel-qty']||'—'}</td><td>${it.material||'—'}</td>
+      <td>${it.louvre||'—'}</td><td>${it.color||'—'}</td><td>${mid}</td><td>${pc}</td>
+      <td>${hingeColorDisplay}</td><td>${frameInfo}</td>
+      <td>${fl}</td><td>${fr}</td><td>${ft}</td><td>${fb}</td>
+      <td>${it.type==='hinge'?'—':it['track-supply']||'—'}</td>
+      <td>${tpostDisplay}</td><td>${it.rod||'—'}</td>
+      <td>${calcM2(it.width,it.height)}</td></tr>`;
+  }).join('');
+  document.getElementById('report-notes').innerHTML=items.map((it,i)=>{
+    const lines=[];
+    const ordinal=n=>['1st','2nd','3rd','4th','5th','6th','7th','8th'][n-1]||`${n}th`;
+    // 去除英文：移除所有英文字母、括號內純英文說明、及多餘空白
+    function stripEng(s){
+      if(!s) return s;
+      // 移除括號內全為英文/數字/空格/符號的內容
+      let r=s.replace(/\([^()]*\)/g, m => /[\u4e00-\u9fff]/.test(m)?m:'');
+      // 移除連續英文單字（保留數字與中文）
+      r=r.replace(/[A-Za-z]+(\s+[A-Za-z&]+)*/g,'').replace(/\s{2,}/g,' ').trim();
+      return r;
+    }
+    // 共用：把 TCB positions 轉成 1st 2nd 格式（不顯示 T#/C#/B# 前綴）
+    function tcbLines(tcb, label){
+      const result=[];
+      const all=[];
+      (tcb.tPos||[]).forEach(p=>{if(p) all.push(p);});
+      (tcb.cPos||[]).forEach(p=>{if(p) all.push(p);});
+      (tcb.bPos||[]).forEach(p=>{if(p) all.push(p);});
+      if(all.length) result.push(`${label}角柱位置：`+all.map((p,j)=>`${ordinal(j+1)}:${p}mm`).join(' '));
+      const allDegs=[...(tcb.cDeg||[]),...(tcb.bDeg||[])].filter(d=>d);
+      if(allDegs.length) result.push(`${label}海灣角柱度數：`+allDegs.map((d,j)=>`${ordinal(j+1)}:${d}°`).join(' '));
+      return result;
+    }
+    if(it.type==='hinge'){
+      if(it.program) lines.push(`方案：${it.program}`);
+      if(it.install) lines.push(`安裝類型：${it.install}`);
+      if(it['fixed-louver']&&it['fixed-louver']!==''&&it['fixed-louver']!=='-- 無 --') lines.push(`固定葉片：${it['fixed-louver']}`);
+      if(it.stile) lines.push(`豎柱：${it.stile}`);
+      if(it['split-rod']&&it['split-rod']!=='None'){
+        let rodVal;
+        if(it['split-rod']==='自定義'){
+          const parts=[];
+          if(it['split-rod-custom']) parts.push(`1st:${it['split-rod-custom']}mm`);
+          if(it['split-rod-custom2']) parts.push(`2nd:${it['split-rod-custom2']}mm`);
+          rodVal=parts.join(' ')||'自定義';
+        } else { rodVal=stripEng(it['split-rod']); }
+        lines.push(`拉桿分段位置：${rodVal}`);
+      }
+      if(it.tbar){
+        const tcb=it['main-tcb']||{};
+        tcbLines(tcb,'上部 ').forEach(l=>lines.push(l));
+      }
+      if(it.dhung&&it.dhung!=='NO'){
+        const dhlocVal=it['dhloc-custom']?`1st:${it['dhloc-custom']}mm`:(it.dhloc==='在中心At Centre'?'在中心':'');
+        const dhungLabel=it.dhung.includes('不同')?'雙層結構不同':it.dhung.includes('相同')?'雙層結構相同':'雙層氣窗';
+        lines.push(`雙層氣窗：${dhungLabel}`);
+        if(dhlocVal) lines.push(`水平T位置：${dhlocVal}`);
+        if(it.htbar&&it.htbar.includes('Required')) lines.push(`水平T尺寸：${(it['htbar-size']||'').split(' ')[0]}`);
+        if(it.dhung.includes('不同')&&it['panel-lower']){
+          lines.push(`氣窗下部結構：${it['panel-lower']}`);
+          const ltcb=it['lower-tcb']||{};
+          tcbLines(ltcb,'下部 ').forEach(l=>lines.push('　'+l));
+          if(it['stile-lower']) lines.push(`下部豎柱：${it['stile-lower']}`);
+        }
+      }
+      const pre=[]; if(it['pre-l'])pre.push('左');if(it['pre-r'])pre.push('右');if(it['pre-t'])pre.push('上');if(it['pre-b'])pre.push('下');
+      if(pre.length) lines.push(`花邊預鑽孔：${pre.join('、')}`);
+      // 所有特殊選項合併成一個編號列表
+      const allSp=[];
+      if(it.ringpull==='Yes') allSp.push('拉手 Ring Pull');
+      if(it.handle==='Yes') allSp.push('把手 Handle');
+      if(it['sp-door'])allSp.push('用作門');
+      if(it['sp-hloose'])allSp.push('合頁不裝');
+      if(it['sp-mloose'])allSp.push('磁鐵不裝');
+      if(it['sp-lmag'])allSp.push('L型衛鐵片');
+      if(it['sp-button'])allSp.push('碰珠固定');
+      if(it['sp-sbt'])allSp.push('安全鎖上部');
+      if(it['sp-sbb'])allSp.push('安全鎖下部');
+      if(it['sp-sbtb'])allSp.push('上下安全鎖');
+      if(it['sp-bbt'])allSp.push('門栓上部');
+      if(it['sp-bbb'])allSp.push('門栓下部');
+      if(it['sp-bbtb'])allSp.push('上下門栓');
+      if(it['fn-uv'])allSp.push('漆面品質請確保完整，皆須添加抗UV劑，需附帶同色漆瓶');
+      if(it['fn-plug'])allSp.push('邊框預鑽螺絲孔塞子，請用提供的木塞製作，也請將木塞噴上同色漆料，另外包裝過來，也額外再附上白色塑膠孔蓋');
+      if(it['fn-stile'])allSp.push('木紋色57豎柱不採用<指接>豎柱，一律使用整片板材方式製作');
+      if(it['fn-tpost'])allSp.push('垂直T柱厚度尺寸務必匹配花邊厚度尺寸，每支T柱請務必標示由左至右T1、T2、T3，每支T柱也請確實標明「上」跟「下」');
+      if(it['fn-drill'])allSp.push('花邊蓋片正面皆默認需預鑽孔，切記不要鑽到合頁鉸鏈位置');
+      if(allSp.length) lines.push('特殊選項：'+allSp.map((s,j)=>`${j+1}.${s}`).join('　'));
+    } else {
+      if(it.program) lines.push(`方案：${it.program}`);
+      if(it.install) lines.push(`安裝類型：${it.install}`);
+      // 摺疊門和移門都在備註顯示滑軌系統，不顯示在表格花邊欄
+      if(it['track-type']) lines.push(`滑軌系統：${it['track-type']}`);
+      if(it['fixed-louver']&&it['fixed-louver']!==''&&it['fixed-louver']!=='-- 無 --'&&it['fixed-louver']!=='') lines.push(`固定葉片：${it['fixed-louver']}`);
+      if(it.floating&&it.floating==='Yes'&&it['track-type']&&!it['track-type'].includes('移門')) lines.push(`浮動百葉門：Yes`);
+      if(it.boxout&&it.boxout!=='No'){
+        let boxStr=`板塊：${it.boxout}`;
+        if(it['boxout-size']) boxStr+=` ${it['boxout-size']}`;
+        if(it['header-len']&&+it['header-len']>0) boxStr+=`　頂板長度：${it['header-len']}mm`;
+        lines.push(boxStr);
+      }
+      if(it['top-track']&&+it['top-track']>0) lines.push(`上滑軌長度：${it['top-track']}mm`);
+      if(it['bot-track']&&+it['bot-track']>0) lines.push(`下滑軌長度：${it['bot-track']}mm`);
+      if(it['split-rod']&&it['split-rod']!=='None'){
+        let rodVal;
+        if(it['split-rod']==='自定義'){
+          const parts=[];
+          if(it['split-rod-custom']) parts.push(`1st:${it['split-rod-custom']}mm`);
+          if(it['split-rod-custom2']) parts.push(`2nd:${it['split-rod-custom2']}mm`);
+          rodVal=parts.join(' ')||'自定義';
+        } else { rodVal=stripEng(it['split-rod']); }
+        lines.push(`拉桿分段位置：${rodVal}`);
+      }
+      if(it.stile) lines.push(`豎柱：${it.stile}`);
+      if(it['bot-track-type']) lines.push(`滑軌：${it['bot-track-type']}`);
+      if(it['top-color']||it['bot-color']) lines.push(`軌道顏色 上：${it['top-color']||'—'} 下：${it['bot-color']||'—'}`);
+      if(it['fascia-l']==='YES') lines.push(`側頂飾板左：YES`);
+      if(it['fascia-r']==='YES') lines.push(`側頂飾板右：YES`);
+      if(it['bot-drill']==='YES') lines.push(`下滑軌鑲螺釘孔：YES`);
+      const allSpT=[];
+      if(it.ringpull==='Yes') allSpT.push('拉手 Ring Pull');
+      if(it.handle==='Yes') allSpT.push('把手 Handle');
+      if(it['sp-rabbet'])allSpT.push('所有Panels之間採用Rabbet Stile');
+      if(it['sp-efascia'])allSpT.push('額外上飾板Extra Fascia');
+      if(it['sp-split'])allSpT.push('Top and bottom track split at Center');
+      if(it['fn-uv'])allSpT.push('漆面品質請確保完整，皆須添加抗UV劑，需附帶同色漆瓶');
+      if(it['fn-pulley'])allSpT.push('上方滑輪豎柱請铣槽我司提供的U型五金零配件');
+      if(it['fn-pivot'])allSpT.push('下方彈性消軸請配上我司提供的白色彈性消軸');
+      if(it['fn-stile'])allSpT.push('木紋色57豎柱不採用<指接>豎柱，一律使用整片板材方式製作');
+      if(allSpT.length) lines.push('特殊選項：'+allSpT.map((s,j)=>`${j+1}.${s}`).join('　'));
+    }
+    if(it.notes) lines.push(`說明：${it.notes}`);
+    const timberHTML=(it.timbers&&it.timbers.length)
+      ?'<br><span style="font-weight:600;color:#8a6d00">🪵 木料：</span><br>'
+        +'<table style="font-size:11px;border-collapse:collapse;margin-top:4px;width:100%">'
+        +'<tr style="background:#f5e6c0"><td style="padding:3px 6px;font-weight:600">項次</td><td style="padding:3px 6px;font-weight:600">尺寸(mm)</td><td style="padding:3px 6px;font-weight:600">數量</td><td style="padding:3px 6px;font-weight:600">顏色</td><td style="padding:3px 6px;font-weight:600">備註</td></tr>'
+        +it.timbers.map((t,ti)=>`<tr style="border-top:1px solid #e8d9a0">
+          <td style="padding:3px 6px">${ti+1}</td>
+          <td style="padding:3px 6px">${t.w||'—'}×${t.d||'—'}×${t.l||'—'}</td>
+          <td style="padding:3px 6px">×${t.qty||1}</td>
+          <td style="padding:3px 6px">${t.color||'—'}</td>
+          <td style="padding:3px 6px">${t.note||''}</td>
+        </tr>`).join('')
+        +'</table>'
+      :'';
+    const imagesHTML=(it.images&&it.images.length)
+      ?'<br><span style="font-weight:600;color:#1a6dcc">📷 參考圖片：</span><br>'
+        +'<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">'
+        +it.images.map(src=>`<img src="${src}" style="width:120px;height:120px;object-fit:cover;border-radius:6px;border:1px solid #ddd">`).join('')
+        +'</div>'
+      :'';
+    return `<div class="note-item"><strong>ITEM ${i+1}：</strong>${lines.join('<br>')}${timberHTML}${imagesHTML}</div>`;
+  }).join('');
+}
+
+// ── 木料 ──
+let timberCounters={h:0,t:0};
+const TIMBER_COLORS=ALL_COLORS;
+function addTimber(prefix){
+  timberCounters[prefix]++;
+  const n=timberCounters[prefix];
+  const colorOpts=TIMBER_COLORS.map(c=>`<option value="${c}">${c}</option>`).join('');
+  document.getElementById(`${prefix}-timber-list`).insertAdjacentHTML('beforeend',`
+    <div class="item-card" id="${prefix}-timber-${n}" style="background:#fffdf5;border-color:#e8d9a0;margin-top:8px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <span style="font-size:12px;font-weight:700;color:#8a6d00">木料 #${n}</span>
+        <button class="btn btn-danger" onclick="document.getElementById('${prefix}-timber-${n}').remove()">刪除</button>
+      </div>
+      <div class="form-row r4">
+        <div class="field"><label>寬度 (mm)</label><input type="number" id="${prefix}-tw-${n}" placeholder="例：20"></div>
+        <div class="field"><label>深度 (mm)</label><input type="number" id="${prefix}-td-${n}" placeholder="例：30"></div>
+        <div class="field"><label>長度 (mm)</label><input type="number" id="${prefix}-tl-${n}" placeholder="例：1800"></div>
+        <div class="field"><label>數量</label><input type="number" id="${prefix}-tn-${n}" value="1"></div>
+      </div>
+      <div class="form-row r2" style="margin-top:8px">
+        <div class="field"><label>顏色</label><select id="${prefix}-tc-${n}"><option value="">-- 選擇顏色 --</option>${colorOpts}</select></div>
+        <div class="field"><label>特殊備註</label><input type="text" id="${prefix}-tnote-${n}" placeholder="例：預鑽孔面"></div>
+      </div>
+    </div>`);
+}
+function collectTimbers(prefix){
+  const timbers=[];
+  document.getElementById(`${prefix}-timber-list`).querySelectorAll('.item-card').forEach(card=>{
+    const n=card.id.split('-').pop();
+    const w=document.getElementById(`${prefix}-tw-${n}`)?.value;
+    const d=document.getElementById(`${prefix}-td-${n}`)?.value;
+    const l=document.getElementById(`${prefix}-tl-${n}`)?.value;
+    const qty=document.getElementById(`${prefix}-tn-${n}`)?.value;
+    const color=document.getElementById(`${prefix}-tc-${n}`)?.value;
+    const note=document.getElementById(`${prefix}-tnote-${n}`)?.value;
+    if(w||d||l) timbers.push({w,d,l,qty,color,note});
+  });
+  return timbers;
+}
+
+// ── 圖片上傳 ──
+function addImages(prefix, input){
+  const files = Array.from(input.files);
+  const container = document.getElementById(`${prefix}-img-list`);
+  files.forEach(file=>{
+    const reader = new FileReader();
+    reader.onload = e=>{
+      const src = e.target.result;
+      const id = `img-${Date.now()}-${Math.random().toString(36).slice(2,6)}`;
+      const div = document.createElement('div');
+      div.id = id;
+      div.style.cssText = 'position:relative;display:inline-block';
+      div.innerHTML = `
+        <img src="${src}" style="width:100px;height:100px;object-fit:cover;border-radius:8px;border:2px solid #ddd;cursor:pointer" onclick="showFullImg('${id}')">
+        <button onclick="document.getElementById('${id}').remove()" style="position:absolute;top:-6px;right:-6px;background:#e53935;color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
+        <img src="${src}" id="src-${id}" style="display:none">`;
+      container.appendChild(div);
+    };
+    reader.readAsDataURL(file);
+  });
+  input.value='';
+}
+
+function showFullImg(id){
+  const src = document.getElementById(`src-${id}`)?.src;
+  if(!src) return;
+  const overlay = document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:zoom-out';
+  overlay.onclick = ()=>overlay.remove();
+  overlay.innerHTML=`<img src="${src}" style="max-width:90vw;max-height:90vh;border-radius:8px;box-shadow:0 4px 32px rgba(0,0,0,.5)">`;
+  document.body.appendChild(overlay);
+}
+
+function getImages(prefix){
+  const imgs=[];
+  document.getElementById(`${prefix}-img-list`)?.querySelectorAll('[id^="src-"]').forEach(el=>{
+    if(el.src) imgs.push(el.src);
+  });
+  return imgs;
+}
+
+function loadImages(prefix, imgs){
+  const container=document.getElementById(`${prefix}-img-list`);
+  if(!container||!imgs?.length) return;
+  container.innerHTML='';
+  imgs.forEach(src=>{
+    const id=`img-${Date.now()}-${Math.random().toString(36).slice(2,6)}`;
+    const div=document.createElement('div');
+    div.id=id;
+    div.style.cssText='position:relative;display:inline-block';
+    div.innerHTML=`
+      <img src="${src}" style="width:100px;height:100px;object-fit:cover;border-radius:8px;border:2px solid #ddd;cursor:pointer" onclick="showFullImg('${id}')">
+      <button onclick="document.getElementById('${id}').remove()" style="position:absolute;top:-6px;right:-6px;background:#e53935;color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:12px;cursor:pointer">✕</button>
+      <img src="${src}" id="src-${id}" style="display:none">`;
+    container.appendChild(div);
+  });
+}
+</script>
+</body>
+</html>
