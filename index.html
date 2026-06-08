@@ -1022,8 +1022,13 @@ function goReport(){
   document.querySelectorAll('.step-page').forEach(p=>p.classList.remove('active'));
   document.getElementById('report-page').classList.add('active');
   const today=new Date().toLocaleDateString('zh-TW');
-  document.getElementById('r-client').textContent=document.getElementById('s1-client').value||'—';
-  document.getElementById('r-no').textContent=document.getElementById('s1-no').value||'—';
+  const clientName=document.getElementById('s1-client').value||'';
+  const orderNo=document.getElementById('s1-no').value||'';
+  // 動態更新標題，讓PDF檔案名稱顯示客戶名稱+訂單號碼
+  const titleParts=[clientName,orderNo].filter(Boolean);
+  document.title = titleParts.length ? titleParts.join('_') : '鴻鋌百葉窗採購單';
+  document.getElementById('r-client').textContent=clientName||'—';
+  document.getElementById('r-no').textContent=orderNo||'—';
   document.getElementById('r-date').textContent=document.getElementById('s1-date').value||today;
   function calcM2(w,h){if(!w||!h)return'—';return((+w/1000)*(+h/1000)*10.89).toFixed(2);}
   document.getElementById('report-tbody').innerHTML=items.map((it,i)=>{
