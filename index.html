@@ -61,6 +61,22 @@ h2{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px;padding-botto
 .note-item strong{display:block;color:#1a1a2e;margin-bottom:4px;font-size:13px}
 .print-bar{background:#1a1a2e;padding:12px 20px;display:flex;gap:10px;align-items:center}
 .print-bar span{color:#fff;font-weight:600;font-size:15px;flex:1}
+/* 訂單管理 */
+#step0{background:#f0f0f0}
+.order-list-item{background:#fff;border-radius:10px;padding:16px 18px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,.07);display:flex;align-items:center;gap:14px;cursor:default}
+.order-list-item:hover{box-shadow:0 4px 14px rgba(0,0,0,.12)}
+.order-badge{font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;white-space:nowrap}
+.badge-hinge{background:#e8f0ff;color:#1a6dcc}
+.badge-track{background:#e8fff2;color:#0a8040}
+.order-meta{flex:1;min-width:0}
+.order-title{font-size:14px;font-weight:700;color:#1a1a2e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.order-sub{font-size:12px;color:#888;margin-top:2px}
+.order-actions{display:flex;gap:8px;flex-shrink:0}
+.badge-saved{background:#fff3cd;color:#856404;font-size:11px;font-weight:700;padding:2px 7px;border-radius:10px}
+.empty-orders{text-align:center;padding:40px 20px;color:#bbb}
+.empty-orders .icon{font-size:48px;margin-bottom:12px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a2e;color:#fff;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:600;z-index:9999;pointer-events:none;opacity:0;transition:opacity .3s}
+.toast.show{opacity:1}
 @media print{
   @page{margin:8mm 6mm}
   .print-bar,.no-print{display:none!important}
@@ -77,12 +93,38 @@ h2{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px;padding-botto
 </head>
 <body>
 
-<!-- STEP 1 -->
-<div class="step-page active" id="step1">
+<!-- STEP 0：訂單管理首頁 -->
+<div class="step-page active" id="step0">
 <div class="page-inner">
-  <div style="padding:20px 0 10px">
+  <div style="padding:20px 0 10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+    <div>
+      <h1>🪟 鴻鋌百葉窗採購單</h1>
+      <p class="subtitle">所有訂單自動儲存於本機瀏覽器</p>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-secondary" onclick="importOrders()" title="從備份JSON匯入">📥 匯入備份</button>
+      <button class="btn btn-secondary" onclick="exportAllOrders()" title="匯出所有訂單為JSON備份">📤 匯出備份</button>
+      <button class="btn btn-primary" onclick="newOrder()">＋ 建立新訂單</button>
+    </div>
+  </div>
+  <div class="card">
+    <h2>📋 歷史訂單</h2>
+    <div id="order-list-wrap">
+      <div class="empty-orders"><div class="icon">📭</div><div>尚無任何訂單<br><span style="font-size:12px">點擊「建立新訂單」開始</span></div></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- STEP 1 -->
+<div class="step-page" id="step1">
+<div class="page-inner">
+  <div style="padding:20px 0 10px;display:flex;align-items:center;gap:12px">
+    <button class="btn btn-secondary no-print" onclick="goStep(0)">← 訂單列表</button>
+    <div>
     <h1>🪟 鴻鋌百葉窗採購單</h1>
     <p class="subtitle">請依序填寫，完成後可新增多筆品項，最後彙整列印</p>
+    </div>
   </div>
   <div class="card">
     <h2>📋 訂單基本資料</h2>
@@ -116,6 +158,8 @@ h2{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px;padding-botto
     </div>
   </div>
   <div class="btn-row">
+    <button class="btn btn-secondary no-print" onclick="goStep(0)">← 訂單列表</button>
+    <button class="btn btn-secondary no-print" onclick="if(currentOrderId){saveCurrentOrder();showToast('💾 訂單已儲存');}">💾 儲存訂單</button>
     <button class="btn btn-primary" onclick="goReport()">📄 產生報表 →</button>
   </div>
 </div>
@@ -671,7 +715,177 @@ h2{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px;padding-botto
   </div>
 </div>
 
+<input type="file" id="import-file-input" accept=".json" style="display:none" onchange="handleImportFile(this)">
+<div class="toast" id="toast"></div>
+
 <script>
+// ══════════════════════════════════════════
+//  訂單管理（localStorage）
+// ══════════════════════════════════════════
+const LS_KEY = 'ht_shutter_orders';
+let allOrders = [];       // 所有儲存訂單
+let currentOrderId = null; // 目前正在編輯的訂單 ID
+
+function loadAllOrders(){
+  try{ allOrders = JSON.parse(localStorage.getItem(LS_KEY)) || []; }
+  catch(e){ allOrders = []; }
+}
+function saveAllOrders(){
+  try{ localStorage.setItem(LS_KEY, JSON.stringify(allOrders)); }
+  catch(e){ showToast('⚠️ 儲存失敗（空間不足）'); }
+}
+function showToast(msg, duration=2200){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), duration);
+}
+function genId(){
+  return Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+}
+
+function renderOrderList(){
+  loadAllOrders();
+  const wrap = document.getElementById('order-list-wrap');
+  if(!allOrders.length){
+    wrap.innerHTML=`<div class="empty-orders"><div class="icon">📭</div><div>尚無任何訂單<br><span style="font-size:12px">點擊「建立新訂單」開始</span></div></div>`;
+    return;
+  }
+  // 最新的排前面
+  const sorted = [...allOrders].sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+  wrap.innerHTML = sorted.map(ord=>{
+    const itemCount = (ord.items||[]).length;
+    const types = [...new Set((ord.items||[]).map(it=>it.type))];
+    const typeLabel = types.map(t=>t==='hinge'?
+      `<span class="order-badge badge-hinge">🔩 框形</span>`:
+      `<span class="order-badge badge-track">🛤 軌道</span>`).join(' ');
+    const dateStr = ord.updatedAt ? new Date(ord.updatedAt).toLocaleString('zh-TW',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
+    return `<div class="order-list-item">
+      <div class="order-meta">
+        <div class="order-title">${ord.client||'（未填客戶名稱）'}${ord.no?' ／ '+ord.no:''}</div>
+        <div class="order-sub">📅 ${ord.date||'—'} &nbsp;｜&nbsp; 最後修改 ${dateStr} &nbsp;｜&nbsp; ${itemCount} 筆品項 &nbsp; ${typeLabel}</div>
+      </div>
+      <div class="order-actions">
+        <button class="btn btn-secondary" style="font-size:12px;padding:6px 14px" onclick="loadOrder('${ord.id}')">✏️ 開啟編輯</button>
+        <button class="btn btn-secondary" style="font-size:12px;padding:6px 14px" onclick="exportOrder('${ord.id}')">📤 匯出</button>
+        <button class="btn btn-danger" style="font-size:12px;padding:6px 12px" onclick="confirmDeleteOrder('${ord.id}',this)">刪除</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function newOrder(){
+  currentOrderId = genId();
+  items = [];
+  // 清空 step1 欄位
+  ['s1-date','s1-no','s1-client'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  // 設定今天日期
+  const today=new Date().toISOString().split('T')[0];
+  const dateEl=document.getElementById('s1-date'); if(dateEl) dateEl.value=today;
+  goStep(1);
+}
+
+function loadOrder(id){
+  loadAllOrders();
+  const ord = allOrders.find(o=>o.id===id);
+  if(!ord){ showToast('找不到訂單'); return; }
+  currentOrderId = id;
+  items = ord.items || [];
+  const dateEl=document.getElementById('s1-date'); if(dateEl) dateEl.value=ord.date||'';
+  const noEl=document.getElementById('s1-no'); if(noEl) noEl.value=ord.no||'';
+  const clientEl=document.getElementById('s1-client'); if(clientEl) clientEl.value=ord.client||'';
+  goStep(2);
+}
+
+function saveCurrentOrder(){
+  loadAllOrders();
+  const date=document.getElementById('s1-date')?.value||'';
+  const no=document.getElementById('s1-no')?.value||'';
+  const client=document.getElementById('s1-client')?.value||'';
+  const existing = allOrders.findIndex(o=>o.id===currentOrderId);
+  const ord = { id:currentOrderId, date, no, client, items:[...items], updatedAt:Date.now() };
+  if(existing>=0) allOrders[existing]=ord;
+  else allOrders.push(ord);
+  saveAllOrders();
+}
+
+function confirmDeleteOrder(id, btn){
+  // 在按鈕旁顯示確認
+  const actions = btn.closest('.order-actions');
+  if(actions.querySelector('.del-confirm')) return;
+  btn.style.display='none';
+  const conf = document.createElement('span');
+  conf.className='del-confirm';
+  conf.style.cssText='display:flex;align-items:center;gap:6px';
+  conf.innerHTML=`<span style="font-size:12px;color:#e05;font-weight:600">確定？</span>
+    <button class="btn" style="background:#e05;color:#fff;font-size:12px;padding:5px 12px" onclick="deleteOrder('${id}')">確定</button>
+    <button class="btn btn-secondary" style="font-size:12px;padding:5px 12px" onclick="this.closest('.del-confirm').remove();document.querySelector('[onclick*=\\'${id}\\']').style.display=''">取消</button>`;
+  actions.appendChild(conf);
+}
+
+function deleteOrder(id){
+  loadAllOrders();
+  allOrders = allOrders.filter(o=>o.id!==id);
+  saveAllOrders();
+  showToast('🗑 訂單已刪除');
+  renderOrderList();
+}
+
+function exportOrder(id){
+  loadAllOrders();
+  const ord = allOrders.find(o=>o.id===id);
+  if(!ord) return;
+  const name = [ord.client,ord.no].filter(Boolean).join('_')||'訂單備份';
+  downloadJSON([ord], name+'_'+new Date().toISOString().slice(0,10));
+}
+
+function exportAllOrders(){
+  loadAllOrders();
+  if(!allOrders.length){ showToast('尚無訂單可匯出'); return; }
+  downloadJSON(allOrders, '鴻鋌百葉窗_所有訂單_'+new Date().toISOString().slice(0,10));
+}
+
+function downloadJSON(data, filename){
+  const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename+'.json';
+  a.click();
+  showToast('✅ 已匯出 '+filename+'.json');
+}
+
+function importOrders(){
+  document.getElementById('import-file-input').click();
+}
+
+function handleImportFile(input){
+  const file = input.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e=>{
+    try{
+      let data = JSON.parse(e.target.result);
+      if(!Array.isArray(data)) data=[data];
+      loadAllOrders();
+      let added=0, updated=0;
+      data.forEach(ord=>{
+        if(!ord.id) ord.id=genId();
+        const idx = allOrders.findIndex(o=>o.id===ord.id);
+        if(idx>=0){ allOrders[idx]=ord; updated++; }
+        else{ allOrders.push(ord); added++; }
+      });
+      saveAllOrders();
+      showToast(`✅ 匯入完成：新增 ${added} 筆，更新 ${updated} 筆`, 3000);
+      renderOrderList();
+    }catch(err){
+      showToast('❌ 檔案格式錯誤，請使用本系統匯出的JSON');
+    }
+  };
+  reader.readAsText(file);
+  input.value='';
+}
+
+// ══════════════════════════════════════════
 const WHITE_COLORS=['101 Pure white','102 Extreme White','103 Silk White','104 slaked lime','105 wimbourne white','106 strong white','107 school house white','108 milky white','109 morning dew','110 portland stone','111 sea mist','112 Sycamore','113 timberwolf','114 Marl grey','115 Cool grey','116 Vanilla grey','117 Pine needles grey','118 Marble grey','119 Traffic gray','120 charcoal grey','121 Stone Gray','911 Matt black覆蓋色10%啞光','912 Flat Black','913 Black'];
 const WOOD_COLORS=['601 Nature','602 Oak','603 Chestnut','604 Pecan nut','605 Red mahogany','606 Rose','607 Mahogany','608 Black walnut','609 Pebble','610 Limed white','611 Mist','612 Driftwood','613 Rich walnut','614 Werthered Teak','615 Rustic Gray'];
 const ALL_COLORS=[...WHITE_COLORS,...WOOD_COLORS];
@@ -684,13 +898,18 @@ let items=[], editIdx=-1;
 
 function goStep(n){
   document.querySelectorAll('.step-page').forEach(p=>p.classList.remove('active'));
-  if(n===2){
+  if(n===0){
+    document.getElementById('step0').classList.add('active');
+    renderOrderList();
+  } else if(n===2){
     document.getElementById('step2').classList.add('active');
     const clientEl=document.getElementById('s1-client');
     const noEl=document.getElementById('s1-no');
     const subtitle=[(clientEl?clientEl.value:''),(noEl?noEl.value:'')].filter(Boolean).join('｜')||'—';
     document.getElementById('s2-subtitle').textContent='客戶：'+subtitle;
     renderSummary();
+    // 自動儲存
+    if(currentOrderId) { saveCurrentOrder(); showToast('💾 已自動儲存'); }
   } else if(n===1){
     document.getElementById('step1').classList.add('active');
   }
@@ -983,6 +1202,7 @@ function saveItem(type){
   d.timbers=collectTimbers(type==='hinge'?'h':'t');
   d.images=getImages(type==='hinge'?'h':'t');
   if(editIdx>=0) items[editIdx]=d; else items.push(d);
+  if(currentOrderId) saveCurrentOrder();
   goStep(2);
 }
 
@@ -1021,7 +1241,7 @@ function cancelDelete(i){
   document.getElementById(`del-btn-${i}`).style.display='';
   document.getElementById(`del-confirm-${i}`).style.display='none';
 }
-function deleteItem(i){items.splice(i,1);renderSummary();}
+function deleteItem(i){items.splice(i,1);if(currentOrderId) saveCurrentOrder();renderSummary();}
 
 function goReport(){
   if(!items.length){alert('請至少新增一筆品項！');return;}
@@ -1317,6 +1537,8 @@ function loadImages(prefix, imgs){
     container.appendChild(div);
   });
 }
+// 初始化：載入訂單列表
+renderOrderList();
 </script>
 </body>
 </html>
