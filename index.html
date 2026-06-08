@@ -1050,7 +1050,9 @@ function goReport(){
     })();
     const pc=it['panel-custom']? it['panel-custom'] : (it.panel||'—');
     const mountDisplay=it.mount||it.install||'—';
-    const tpostDisplay=it.type==='hinge'?(it.tbar||'—'):'—';
+    const panelStr = (it['panel-custom']||it.panel||'').toUpperCase();
+    const hasT = panelStr.includes('T');
+    const tpostDisplay = it.type==='hinge' ? (hasT ? (it.tbar||'—') : '—') : '—';
     return `<tr><td>${i+1}</td><td>${it.room||'—'}</td><td>${it.measure||'—'}</td>
       <td>${it.width}</td><td>${it.height}</td><td>${mountDisplay}</td>
       <td>${it.qty||1}</td><td>${it['panel-qty']||'—'}</td><td>${it.material||'—'}</td>
