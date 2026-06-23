@@ -87,6 +87,16 @@ h2{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px;padding-botto
 .btn-gdrive-out{background:#fff;color:#e05;border:2px solid #fcc;padding:7px 14px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
 .sync-spin{display:inline-block;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
+/* 必填警示視窗 */
+.err-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:10000;display:none;align-items:center;justify-content:center;padding:20px}
+.err-overlay.show{display:flex}
+.err-box{background:#fff;border-radius:14px;max-width:420px;width:100%;padding:24px;box-shadow:0 12px 40px rgba(0,0,0,.25);animation:errpop .2s ease}
+@keyframes errpop{from{transform:scale(.92);opacity:0}to{transform:scale(1);opacity:1}}
+.err-box h3{font-size:17px;font-weight:800;color:#e0245e;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.err-box ul{margin:0 0 18px;padding-left:4px;list-style:none}
+.err-box li{font-size:14px;color:#333;padding:8px 12px;background:#fff4f6;border-left:3px solid #e0245e;border-radius:6px;margin-bottom:8px;line-height:1.5}
+.err-box button{width:100%;background:#1a1a2e;color:#fff;border:none;padding:12px;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit}
+.err-box button:hover{background:#333}
 @media print{
   @page{margin:8mm 6mm}
   .print-bar,.no-print{display:none!important}
@@ -108,7 +118,7 @@ h2{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px;padding-botto
 <div class="page-inner">
   <div style="padding:20px 0 10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
     <div>
-      <h1>🪟 鴻鋌百葉窗採購單</h1>
+      <h1>鴻鋌百葉窗採購單</h1>
       <p class="subtitle">所有訂單自動儲存於本機瀏覽器 ＋ Google Drive</p>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -144,7 +154,7 @@ h2{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px;padding-botto
   <div style="padding:20px 0 10px;display:flex;align-items:center;gap:12px">
     <button class="btn btn-secondary no-print" onclick="goStep(0)">← 訂單列表</button>
     <div>
-    <h1>🪟 鴻鋌百葉窗採購單</h1>
+    <h1>鴻鋌百葉窗採購單</h1>
     <p class="subtitle">請依序填寫，完成後可新增多筆品項，最後彙整列印</p>
     </div>
   </div>
@@ -429,6 +439,7 @@ h2{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px;padding-botto
         <label><input type="checkbox" id="h-sp-bbt"> 門栓裝上部Barrel Bolt Top</label>
         <label><input type="checkbox" id="h-sp-bbb"> 門栓裝下部Barrel Bolt Bottom</label>
         <label><input type="checkbox" id="h-sp-bbtb"> 上下部裝門栓Barrel Bolt Top and Bottom</label>
+        <label><input type="checkbox" id="h-sp-round"> 請額外附折窗對吸「圓形鐵片」零件</label>
         <label><input type="checkbox" id="h-fn-uv"> 百葉窗漆面品質請確保完整，皆須添加抗UV劑，需附帶同色漆瓶</label>
         <label><input type="checkbox" id="h-fn-plug"> 邊框預鑽螺絲孔塞子，請用提供的木塞製作，也請將木塞噴上同色漆料，另外包裝過來，也額外再附上白色塑膠孔蓋</label>
         <label><input type="checkbox" id="h-fn-stile"> 木紋色57豎柱不採用&lt;指接&gt;豎柱，一律使用整片板材方式製作</label>
@@ -739,6 +750,23 @@ h2{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px;padding-botto
 
 <input type="file" id="import-file-input" accept=".json" style="display:none" onchange="handleImportFile(this)">
 <div class="toast" id="toast"></div>
+<div class="err-overlay" id="err-overlay" onclick="if(event.target===this)closeErr()">
+  <div class="err-box">
+    <h3>⚠️ 無法儲存</h3>
+    <ul id="err-list"></ul>
+    <button onclick="closeErr()">我知道了，返回修改</button>
+  </div>
+</div>
+<div class="err-overlay" id="warn-overlay" onclick="if(event.target===this)closeWarn()">
+  <div class="err-box">
+    <h3 style="color:#d98200">⚠️ 尺寸提醒</h3>
+    <ul id="warn-list"></ul>
+    <div style="display:flex;gap:10px">
+      <button onclick="closeWarn()" style="background:#fff;color:#555;border:2px solid #ddd;flex:1">返回修改</button>
+      <button onclick="warnContinue()" style="background:#0a8040;flex:1">仍要繼續儲存</button>
+    </div>
+  </div>
+</div>
 
 <script>
 // ══════════════════════════════════════════
@@ -760,6 +788,31 @@ function showToast(msg, duration=2200){
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'), duration);
+}
+// 必填警示視窗（取代 alert，確保手機、預覽、GitHub 都顯示）
+function showErr(items){
+  const list = document.getElementById('err-list');
+  list.innerHTML = items.map(t=>`<li>${t}</li>`).join('');
+  document.getElementById('err-overlay').classList.add('show');
+}
+function closeErr(){
+  document.getElementById('err-overlay').classList.remove('show');
+}
+// 尺寸超長提醒（可繼續儲存）
+let warnContinueCb=null;
+function showWarn(items, cb){
+  document.getElementById('warn-list').innerHTML = items.map(t=>`<li style="border-left-color:#d98200;background:#fff8ec">${t}</li>`).join('');
+  warnContinueCb = cb;
+  document.getElementById('warn-overlay').classList.add('show');
+}
+function closeWarn(){
+  document.getElementById('warn-overlay').classList.remove('show');
+  warnContinueCb=null;
+}
+function warnContinue(){
+  document.getElementById('warn-overlay').classList.remove('show');
+  const cb=warnContinueCb; warnContinueCb=null;
+  if(cb) cb();
 }
 function genId(){
   return Date.now().toString(36) + Math.random().toString(36).slice(2,6);
@@ -1310,6 +1363,17 @@ function collectTCBPositions(prefix){
   return r;
 }
 
+// 檢查 T/C/B 位置與度數欄位是否有空格（只檢查目前畫面上存在的欄位）
+function tcbHasEmpty(prefix){
+  for(let i=1;i<=10;i++){
+    for(const k of ['tpos','cpos','bpos','cdeg','bdeg']){
+      const el=document.getElementById(`${prefix}-${k}-${i}`);
+      if(el && (el.value==='' || el.value==null)) return true;
+    }
+  }
+  return false;
+}
+
 function hUpperLowerCalc(){
   // h-panel-upper 已移除，上部即主結構，此函式保留供相容
 }
@@ -1319,7 +1383,48 @@ function saveItem(type){
   const p=type==='hinge'?'h-':'t-';
   const getV=id=>{const el=document.getElementById(p+id);if(!el)return'';if(el.type==='checkbox')return el.checked;return el.value||'';};
   const w=getV('width'), h=getV('height');
-  if(!w||!h){alert('請填寫寬度與高度！');return;}
+
+  // ── 必填欄位驗證 ──
+  const errors=[];
+  if(!w||!h) errors.push('寬度 Width 與 高度 Height');
+
+  // 材質 Material 必選
+  if(!getV('material')) errors.push('材質 Material（請選擇正確材質）');
+
+  // PANEL 結構必填：下拉選擇正確結構 或 自訂欄輸入英文字母（擇一）
+  const hasLetters=s=>/[A-Za-z]/.test(s||'');
+  const panelSel=getV('panel');
+  const panelCustom=getV('panel-custom');
+  const panelValid=(panelSel && panelSel!=='Other') || hasLetters(panelCustom);
+  if(!panelValid) errors.push('PANEL 結構（請選擇結構，或在自訂欄輸入英文字母）');
+
+  // 框形：T型立柱/角柱/海灣角柱位置（含度數）若有出現則必填
+  if(type==='hinge'){
+    if(tcbHasEmpty('h-main')) errors.push('上部 T型立柱/角柱/海灣角柱位置（含度數）尚有空格未填');
+    if(tcbHasEmpty('h-lower')) errors.push('下部 T型立柱/角柱/海灣角柱位置（含度數）尚有空格未填');
+  }
+
+  if(errors.length){
+    showErr(errors);
+    return;
+  }
+
+  // ── 尺寸超長軟提醒（僅提示，仍可儲存與繼續下單）──
+  const warns=[];
+  if(Number(w)>3000) warns.push(`寬度 Width ${w}mm 超過 3000mm（長度超長建議分段）`);
+  if(Number(h)>3000) warns.push(`高度 Height ${h}mm 超過 3000mm（長度超長建議分段）`);
+  collectTimbers(type==='hinge'?'h':'t').forEach((t,i)=>{
+    if(Number(t.l)>3000) warns.push(`木料 #${i+1} 長度 ${t.l}mm 超過 3000mm（長度超長建議分段）`);
+  });
+  if(warns.length){ showWarn(warns, ()=>doSaveItem(type)); return; }
+  doSaveItem(type);
+}
+
+// 實際執行儲存（通過驗證與提醒後）
+function doSaveItem(type){
+  const p=type==='hinge'?'h-':'t-';
+  const getV=id=>{const el=document.getElementById(p+id);if(!el)return'';if(el.type==='checkbox')return el.checked;return el.value||'';};
+  const w=getV('width'), h=getV('height');
   const room=getV('room')==='Other'||!getV('room')? getV('room-custom') : getV('room');
   let d={type,room,program:getV('program'),motor:getV('motor'),material:getV('material'),
     qty:getV('qty'),measure:getV('measure'),width:w,height:h,
@@ -1346,7 +1451,7 @@ function saveItem(type){
       'sp-door':getV('sp-door'),'sp-hloose':getV('sp-hloose'),'sp-mloose':getV('sp-mloose'),
       'sp-lmag':getV('sp-lmag'),'sp-button':getV('sp-button'),'sp-sbt':getV('sp-sbt'),
       'sp-sbb':getV('sp-sbb'),'sp-sbtb':getV('sp-sbtb'),'sp-bbt':getV('sp-bbt'),
-      'sp-bbb':getV('sp-bbb'),'sp-bbtb':getV('sp-bbtb'),
+      'sp-bbb':getV('sp-bbb'),'sp-bbtb':getV('sp-bbtb'),'sp-round':getV('sp-round'),
       'fn-uv':getV('fn-uv'),'fn-plug':getV('fn-plug'),'fn-stile':getV('fn-stile'),
       'fn-tpost':getV('fn-tpost'),'fn-drill':getV('fn-drill'),
     });
@@ -1411,7 +1516,7 @@ function cancelDelete(i){
 function deleteItem(i){items.splice(i,1);if(currentOrderId) saveCurrentOrder();renderSummary();}
 
 function goReport(){
-  if(!items.length){alert('請至少新增一筆品項！');return;}
+  if(!items.length){showErr(['請至少新增一筆品項後再產生報表']);return;}
   document.querySelectorAll('.step-page').forEach(p=>p.classList.remove('active'));
   document.getElementById('report-page').classList.add('active');
   const today=new Date().toLocaleDateString('zh-TW');
@@ -1534,6 +1639,7 @@ function goReport(){
       if(it['sp-bbt'])allSp.push('門栓上部');
       if(it['sp-bbb'])allSp.push('門栓下部');
       if(it['sp-bbtb'])allSp.push('上下門栓');
+      if(it['sp-round'])allSp.push('請額外附折窗對吸「圓形鐵片」零件');
       if(it['fn-uv'])allSp.push('漆面品質請確保完整，皆須添加抗UV劑，需附帶同色漆瓶');
       if(it['fn-plug'])allSp.push('邊框預鑽螺絲孔塞子，請用提供的木塞製作，也請將木塞噴上同色漆料，另外包裝過來，也額外再附上白色塑膠孔蓋');
       if(it['fn-stile'])allSp.push('木紋色57豎柱不採用<指接>豎柱，一律使用整片板材方式製作');
