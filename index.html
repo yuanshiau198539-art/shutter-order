@@ -4,7 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>鴻鋌百葉窗採購單</title>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,Arial,sans-serif;background:#f0f0f0;font-size:14px}
@@ -113,13 +115,32 @@ h2{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px;padding-botto
 </head>
 <body>
 
+<!-- 登入畫面 -->
+<div id="login-screen" style="position:fixed;inset:0;background:linear-gradient(135deg,#1a1a2e,#2d2d5a);z-index:20000;display:flex;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;border-radius:16px;padding:32px 28px;max-width:380px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.4)">
+    <h1 style="font-size:22px;text-align:center;margin-bottom:6px">鴻鋌百葉窗採購單</h1>
+    <p style="text-align:center;color:#888;font-size:13px;margin-bottom:26px">請登入帳號以繼續</p>
+    <div style="margin-bottom:14px">
+      <label style="font-size:13px;color:#555;display:block;margin-bottom:5px">帳號（Email）</label>
+      <input type="email" id="login-email" placeholder="輸入帳號" autocomplete="username" style="width:100%;padding:11px 12px;border:1.5px solid #ddd;border-radius:8px;font-size:15px;font-family:inherit">
+    </div>
+    <div style="margin-bottom:20px">
+      <label style="font-size:13px;color:#555;display:block;margin-bottom:5px">密碼</label>
+      <input type="password" id="login-pw" placeholder="輸入密碼" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()" style="width:100%;padding:11px 12px;border:1.5px solid #ddd;border-radius:8px;font-size:15px;font-family:inherit">
+    </div>
+    <div id="login-error" style="color:#e0245e;font-size:13px;margin-bottom:14px;display:none;background:#fff4f6;padding:10px 12px;border-radius:7px;border-left:3px solid #e0245e"></div>
+    <button onclick="doLogin()" id="login-btn" style="width:100%;background:#1a1a2e;color:#fff;border:none;padding:13px;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">登入</button>
+    <p style="text-align:center;color:#bbb;font-size:11px;margin-top:18px">帳號由系統管理員建立分配</p>
+  </div>
+</div>
+
 <!-- STEP 0：訂單管理首頁 -->
 <div class="step-page active" id="step0">
 <div class="page-inner">
   <div style="padding:20px 0 10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
     <div>
       <h1>鴻鋌百葉窗採購單</h1>
-      <p class="subtitle">所有訂單自動儲存於本機瀏覽器 ＋ Google Drive</p>
+      <p class="subtitle">訂單儲存於雲端資料庫，登入後跨裝置同步</p>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn btn-secondary" onclick="importOrders()" title="從備份JSON匯入">📥 匯入備份</button>
@@ -127,17 +148,11 @@ h2{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px;padding-botto
       <button class="btn btn-primary" onclick="newOrder()">＋ 建立新訂單</button>
     </div>
   </div>
-  <!-- Google Drive 狀態列 -->
+  <!-- 使用者狀態列 -->
   <div class="gdrive-bar">
-    <span id="gdrive-status-text" class="gdrive-status disconnected">☁️ Google Drive：未連線</span>
-    <button class="btn-gdrive" id="gdrive-login-btn" onclick="gdriveSignIn()">
-      <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#fff" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
-      連結 Google Drive
-    </button>
-    <button class="btn-gdrive" id="gdrive-sync-btn" onclick="gdriveSyncAll()" style="display:none;background:#0a8040">
-      <span id="gdrive-sync-icon">☁️</span> 同步至雲端
-    </button>
-    <button class="btn-gdrive-out" id="gdrive-logout-btn" onclick="gdriveSignOut()" style="display:none">登出</button>
+    <span id="current-user-label" class="gdrive-status connected">👤 載入中…</span>
+    <button class="btn-gdrive" id="refresh-btn" onclick="cloudLoadOrders()" style="background:#0a8040"><span id="refresh-icon">🔄</span> 重新整理</button>
+    <button class="btn-gdrive-out" onclick="doLogout()">登出</button>
   </div>
   <div class="card">
     <h2>📋 歷史訂單</h2>
@@ -191,7 +206,7 @@ h2{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px;padding-botto
   </div>
   <div class="btn-row">
     <button class="btn btn-secondary no-print" onclick="goStep(0)">← 訂單列表</button>
-    <button class="btn btn-secondary no-print" onclick="if(currentOrderId){saveCurrentOrder();if(gdriveToken)gdriveSyncAll();else showToast('💾 訂單已儲存');}">💾 儲存訂單</button>
+    <button class="btn btn-secondary no-print" onclick="if(currentOrderId){saveCurrentOrder();showToast('💾 訂單已儲存並同步');}">💾 儲存訂單</button>
     <button class="btn btn-primary" onclick="goReport()">📄 產生報表 →</button>
   </div>
 </div>
@@ -818,6 +833,169 @@ function genId(){
   return Date.now().toString(36) + Math.random().toString(36).slice(2,6);
 }
 
+// ══════════════════════════════════════════
+//  Firebase 登入與雲端資料庫
+// ══════════════════════════════════════════
+const firebaseConfig = {
+  apiKey: "AIzaSyAx5FMNb0fhPnHWvL0N1W9xZsWB6JL3zUc",
+  authDomain: "haider-shutters.firebaseapp.com",
+  projectId: "haider-shutters",
+  storageBucket: "haider-shutters.firebasestorage.app",
+  messagingSenderId: "824538483289",
+  appId: "1:824538483289:web:1d59e15d598396d65abf48"
+};
+
+let auth=null, db=null, FIREBASE_READY=false;
+if(typeof firebase !== 'undefined'){
+  try{
+    firebase.initializeApp(firebaseConfig);
+    auth = firebase.auth();
+    db = firebase.firestore();
+    FIREBASE_READY = true;
+  }catch(e){ console.error('Firebase init failed', e); }
+}
+if(!FIREBASE_READY){
+  // Firebase 程式庫未載入（多半是預覽沙盒環境會擋；上傳 GitHub 後即正常）
+  document.addEventListener('DOMContentLoaded', ()=>{
+    const errEl=document.getElementById('login-error');
+    if(errEl){
+      errEl.textContent='⚠️ 雲端服務載入中或被目前環境阻擋。若在 Claude 預覽看到此訊息屬正常，請上傳至 GitHub 後再使用。';
+      errEl.style.display='block';
+    }
+  });
+}
+let currentUser = null;
+const ADMIN_EMAILS = ['yuanshiau198539@gmail.com']; // 管理員（看全部訂單）
+function isAdminUser(){ return currentUser && ADMIN_EMAILS.includes((currentUser.email||'').toLowerCase()); }
+
+// 登入畫面控制
+function showLoginScreen(){ document.getElementById('login-screen').style.display='flex'; }
+function hideLoginScreen(){ document.getElementById('login-screen').style.display='none'; }
+
+function doLogin(){
+  if(!FIREBASE_READY){
+    const errEl=document.getElementById('login-error');
+    errEl.textContent='⚠️ 雲端服務尚未就緒。若在 Claude 預覽屬正常現象，請上傳至 GitHub 後再登入。';
+    errEl.style.display='block';
+    return;
+  }
+  const email=document.getElementById('login-email').value.trim();
+  const pw=document.getElementById('login-pw').value;
+  const errEl=document.getElementById('login-error');
+  const btn=document.getElementById('login-btn');
+  errEl.style.display='none';
+  if(!email||!pw){ errEl.textContent='請輸入帳號與密碼'; errEl.style.display='block'; return; }
+  btn.textContent='登入中…'; btn.disabled=true;
+  auth.signInWithEmailAndPassword(email,pw)
+    .catch(e=>{
+      btn.textContent='登入'; btn.disabled=false;
+      let msg='登入失敗，請檢查帳號與密碼';
+      if(e.code==='auth/invalid-email') msg='Email 格式不正確';
+      else if(e.code==='auth/user-not-found'||e.code==='auth/wrong-password'||e.code==='auth/invalid-credential') msg='帳號或密碼錯誤';
+      else if(e.code==='auth/too-many-requests') msg='嘗試次數過多，請稍後再試';
+      else if(e.code==='auth/network-request-failed') msg='網路連線失敗，請檢查網路';
+      errEl.textContent=msg; errEl.style.display='block';
+    });
+}
+
+function doLogout(){
+  auth.signOut().then(()=>{
+    allOrders=[];
+    try{ localStorage.removeItem(LS_KEY); }catch(e){}
+    showToast('已登出');
+  });
+}
+
+// 把訂單存到雲端時，移除大型圖片（避免超過 Firestore 單筆 1MB 限制），圖片仍保留在本機
+function stripImagesForCloud(ord){
+  const copy = JSON.parse(JSON.stringify(ord));
+  copy.owner = currentUser ? currentUser.uid : '';
+  copy.ownerEmail = currentUser ? currentUser.email : '';
+  (copy.items||[]).forEach(it=>{
+    if(it.images && it.images.length){ it._imgCount = it.images.length; it.images=[]; }
+  });
+  return copy;
+}
+
+async function cloudSaveOrder(ord){
+  if(!currentUser) return;
+  try{
+    await db.collection('orders').doc(ord.id).set(stripImagesForCloud(ord));
+  }catch(e){
+    console.error('cloudSaveOrder', e);
+    showToast('⚠️ 雲端儲存失敗，本機已保留');
+  }
+}
+
+async function cloudDeleteOrder(id){
+  if(!currentUser) return;
+  try{ await db.collection('orders').doc(id).delete(); }
+  catch(e){ console.error('cloudDeleteOrder', e); }
+}
+
+async function cloudLoadOrders(){
+  if(!currentUser) return;
+  const icon=document.getElementById('refresh-icon');
+  if(icon){ icon.className='sync-spin'; }
+  let cloud=[];
+  try{
+    let q=db.collection('orders');
+    if(!isAdminUser()) q=q.where('owner','==',currentUser.uid);
+    const snap=await q.get();
+    cloud=snap.docs.map(d=>d.data());
+  }catch(e){
+    console.error('cloudLoadOrders', e);
+    showToast('⚠️ 讀取雲端訂單失敗，請重新整理');
+    if(icon){ icon.className=''; }
+    return;
+  }
+
+  // 首次遷移：管理員且雲端為空、本機有舊訂單 → 自動上傳保留
+  if(isAdminUser() && cloud.length===0 && !localStorage.getItem('ht_migrated')){
+    loadAllOrders();
+    if(allOrders.length){
+      for(const o of allOrders){ await cloudSaveOrder(o); }
+      cloud=allOrders.slice();
+      showToast('✅ 已將既有訂單上傳至雲端', 2500);
+    }
+    localStorage.setItem('ht_migrated','1');
+  }
+
+  // 把本機保留的圖片合併回雲端訂單（同一裝置才有）
+  loadAllOrders();
+  cloud.forEach(co=>{
+    const local=allOrders.find(o=>o.id===co.id);
+    if(local && local.items){
+      (co.items||[]).forEach((it,i)=>{
+        if((!it.images||!it.images.length) && local.items[i] && local.items[i].images){
+          it.images=local.items[i].images;
+        }
+      });
+    }
+  });
+  allOrders=cloud;
+  saveAllOrders();
+  renderOrderList();
+  if(icon){ icon.className=''; }
+}
+
+// 監聽登入狀態
+if(FIREBASE_READY){
+  auth.onAuthStateChanged(user=>{
+    if(user){
+      currentUser=user;
+      hideLoginScreen();
+      const lbl=document.getElementById('current-user-label');
+      if(lbl) lbl.textContent=(isAdminUser()?'👑 管理員：':'👤 ')+user.email;
+      goStep(0);
+      cloudLoadOrders();
+    } else {
+      currentUser=null;
+      showLoginScreen();
+    }
+  });
+}
+
 function renderOrderList(){
   loadAllOrders();
   const wrap = document.getElementById('order-list-wrap');
@@ -879,10 +1057,12 @@ function saveCurrentOrder(){
   const no=document.getElementById('s1-no')?.value||'';
   const client=document.getElementById('s1-client')?.value||'';
   const existing = allOrders.findIndex(o=>o.id===currentOrderId);
-  const ord = { id:currentOrderId, date, no, client, items:[...items], updatedAt:Date.now() };
+  const ord = { id:currentOrderId, date, no, client, items:[...items], updatedAt:Date.now(),
+    owner: currentUser?currentUser.uid:'', ownerEmail: currentUser?currentUser.email:'' };
   if(existing>=0) allOrders[existing]=ord;
   else allOrders.push(ord);
   saveAllOrders();
+  cloudSaveOrder(ord);
 }
 
 function confirmDeleteOrder(id, btn){
@@ -903,6 +1083,7 @@ function deleteOrder(id){
   loadAllOrders();
   allOrders = allOrders.filter(o=>o.id!==id);
   saveAllOrders();
+  cloudDeleteOrder(id);
   showToast('🗑 訂單已刪除');
   renderOrderList();
 }
@@ -943,13 +1124,18 @@ function handleImportFile(input){
       if(!Array.isArray(data)) data=[data];
       loadAllOrders();
       let added=0, updated=0;
+      const touched=[];
       data.forEach(ord=>{
         if(!ord.id) ord.id=genId();
+        ord.owner = currentUser?currentUser.uid:'';
+        ord.ownerEmail = currentUser?currentUser.email:'';
         const idx = allOrders.findIndex(o=>o.id===ord.id);
         if(idx>=0){ allOrders[idx]=ord; updated++; }
         else{ allOrders.push(ord); added++; }
+        touched.push(ord);
       });
       saveAllOrders();
+      touched.forEach(o=>cloudSaveOrder(o));
       showToast(`✅ 匯入完成：新增 ${added} 筆，更新 ${updated} 筆`, 3000);
       renderOrderList();
     }catch(err){
@@ -958,151 +1144,6 @@ function handleImportFile(input){
   };
   reader.readAsText(file);
   input.value='';
-}
-
-// ══════════════════════════════════════════
-//  Google Drive 整合
-// ══════════════════════════════════════════
-const GDRIVE_CLIENT_ID = '246911225663-vepu55t0d52d6u81kr62ju5fa26erevj.apps.googleusercontent.com';
-const GDRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
-const GDRIVE_FILE_NAME = 'ht_shutter_orders.json';
-const GDRIVE_LS_TOKEN = 'ht_gdrive_token';
-
-let gdriveToken = null;
-let gdriveFileId = null;
-
-function gdriveInit(){
-  const saved = localStorage.getItem(GDRIVE_LS_TOKEN);
-  if(saved){
-    gdriveToken = saved;
-    gdriveSetConnected(true);
-    gdriveFetchOrders(true);
-  }
-}
-
-function gdriveSetConnected(yes){
-  const statusEl = document.getElementById('gdrive-status-text');
-  const loginBtn = document.getElementById('gdrive-login-btn');
-  const syncBtn = document.getElementById('gdrive-sync-btn');
-  const logoutBtn = document.getElementById('gdrive-logout-btn');
-  if(!statusEl) return;
-  if(yes){
-    statusEl.textContent = '✅ Google Drive：已連線';
-    statusEl.className = 'gdrive-status connected';
-    loginBtn.style.display = 'none';
-    syncBtn.style.display = '';
-    logoutBtn.style.display = '';
-  } else {
-    statusEl.textContent = '☁️ Google Drive：未連線';
-    statusEl.className = 'gdrive-status disconnected';
-    loginBtn.style.display = '';
-    syncBtn.style.display = 'none';
-    logoutBtn.style.display = 'none';
-    gdriveToken = null;
-    gdriveFileId = null;
-    localStorage.removeItem(GDRIVE_LS_TOKEN);
-  }
-}
-
-function gdriveSignIn(){
-  if(typeof google === 'undefined'){ showToast('⚠️ Google 套件載入中，請稍候再試'); return; }
-  const client = google.accounts.oauth2.initTokenClient({
-    client_id: GDRIVE_CLIENT_ID,
-    scope: GDRIVE_SCOPE,
-    callback: (resp) => {
-      if(resp.error){ showToast('❌ Google 登入失敗：'+resp.error); return; }
-      gdriveToken = resp.access_token;
-      localStorage.setItem(GDRIVE_LS_TOKEN, gdriveToken);
-      gdriveSetConnected(true);
-      showToast('✅ 已連結 Google Drive！正在同步…', 2500);
-      gdriveFetchOrders(false);
-    }
-  });
-  client.requestAccessToken();
-}
-
-function gdriveSignOut(){
-  if(typeof google !== 'undefined' && gdriveToken){
-    google.accounts.oauth2.revoke(gdriveToken, ()=>{});
-  }
-  gdriveSetConnected(false);
-  showToast('已登出 Google Drive');
-}
-
-async function gdriveFindFile(){
-  if(gdriveFileId) return gdriveFileId;
-  const res = await fetch(
-    `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name%3D%27${GDRIVE_FILE_NAME}%27&fields=files(id,name)`,
-    { headers:{ Authorization:'Bearer '+gdriveToken } }
-  );
-  const data = await res.json();
-  if(data.files && data.files.length > 0){
-    gdriveFileId = data.files[0].id;
-  }
-  return gdriveFileId;
-}
-
-async function gdriveFetchOrders(silent){
-  try{
-    const fid = await gdriveFindFile();
-    if(!fid){ if(!silent) showToast('雲端尚無資料，以本機為主'); return; }
-    const res = await fetch(
-      `https://www.googleapis.com/drive/v3/files/${fid}?alt=media`,
-      { headers:{ Authorization:'Bearer '+gdriveToken } }
-    );
-    const cloudOrders = await res.json();
-    if(!Array.isArray(cloudOrders)) return;
-    loadAllOrders();
-    let merged = [...cloudOrders];
-    allOrders.forEach(local=>{
-      if(!merged.find(c=>c.id===local.id)) merged.push(local);
-    });
-    allOrders = merged;
-    saveAllOrders();
-    renderOrderList();
-    if(!silent) showToast('☁️ 已從 Google Drive 同步完成', 2500);
-  } catch(e){
-    if(!silent) showToast('⚠️ 同步失敗，Token 可能已過期，請重新連線');
-    gdriveSetConnected(false);
-  }
-}
-
-async function gdriveSyncAll(){
-  if(!gdriveToken){ showToast('請先連結 Google Drive'); return; }
-  const icon = document.getElementById('gdrive-sync-icon');
-  if(icon){ icon.className='sync-spin'; icon.textContent='⟳'; }
-  try{
-    loadAllOrders();
-    const body = JSON.stringify(allOrders);
-    const fid = await gdriveFindFile();
-    let res;
-    if(fid){
-      res = await fetch(
-        `https://www.googleapis.com/upload/drive/v3/files/${fid}?uploadType=media`,
-        { method:'PATCH', headers:{ Authorization:'Bearer '+gdriveToken, 'Content-Type':'application/json' }, body }
-      );
-    } else {
-      const meta = { name: GDRIVE_FILE_NAME, parents:['appDataFolder'] };
-      const form = new FormData();
-      form.append('metadata', new Blob([JSON.stringify(meta)],{type:'application/json'}));
-      form.append('file', new Blob([body],{type:'application/json'}));
-      res = await fetch(
-        'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',
-        { method:'POST', headers:{ Authorization:'Bearer '+gdriveToken }, body:form }
-      );
-      const created = await res.json();
-      gdriveFileId = created.id;
-    }
-    if(res && res.ok){
-      showToast('✅ 已同步至 Google Drive！');
-    } else {
-      throw new Error('upload failed');
-    }
-  } catch(e){
-    showToast('⚠️ 同步失敗，請重新連線 Google Drive');
-    gdriveSetConnected(false);
-  }
-  if(icon){ icon.className=''; icon.textContent='☁️'; }
 }
 
 // ══════════════════════════════════════════
@@ -1129,7 +1170,7 @@ function goStep(n){
     document.getElementById('s2-subtitle').textContent='客戶：'+subtitle;
     renderSummary();
     // 自動儲存
-    if(currentOrderId) { saveCurrentOrder(); showToast('💾 已自動儲存'); if(gdriveToken) gdriveSyncAll(); }
+    if(currentOrderId) { saveCurrentOrder(); showToast('💾 已自動儲存並同步'); }
   } else if(n===1){
     document.getElementById('step1').classList.add('active');
   }
@@ -1810,9 +1851,7 @@ function loadImages(prefix, imgs){
     container.appendChild(div);
   });
 }
-// 初始化：載入訂單列表
-renderOrderList();
-gdriveInit();
+// 初始化：等待 Firebase 登入狀態（onAuthStateChanged 會處理後續載入）
 </script>
 </body>
 </html>
