@@ -217,7 +217,7 @@ h2{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px;padding-botto
 <div class="page-inner">
   <div style="padding:20px 0 10px;display:flex;align-items:center;gap:12px">
     <button class="btn btn-secondary" onclick="goStep(2)">← 返回品項列表</button>
-    <div><h1>🔩 框形樣式（花邊/合頁）</h1>
+    <div><h1>框形樣式（花邊/合頁）</h1>
     <p class="subtitle">Item <span id="hinge-item-no">1</span>｜填寫完成後點儲存</p></div>
   </div>
   <div class="card">
@@ -491,7 +491,7 @@ h2{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px;padding-botto
 <div class="page-inner">
   <div style="padding:20px 0 10px;display:flex;align-items:center;gap:12px">
     <button class="btn btn-secondary" onclick="goStep(2)">← 返回品項列表</button>
-    <div><h1>🛤 軌道樣式（摺疊/移門）</h1>
+    <div><h1>軌道樣式（摺疊/移門）</h1>
     <p class="subtitle">Item <span id="track-item-no">1</span>｜填寫完成後點儲存</p></div>
   </div>
   <div class="card">
@@ -1009,12 +1009,12 @@ function renderOrderList(){
     const itemCount = (ord.items||[]).length;
     const types = [...new Set((ord.items||[]).map(it=>it.type))];
     const typeLabel = types.map(t=>t==='hinge'?
-      `<span class="order-badge badge-hinge">🔩 框形</span>`:
-      `<span class="order-badge badge-track">🛤 軌道</span>`).join(' ');
+      `<span class="order-badge badge-hinge">框形</span>`:
+      `<span class="order-badge badge-track">軌道</span>`).join(' ');
     const dateStr = ord.updatedAt ? new Date(ord.updatedAt).toLocaleString('zh-TW',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
     return `<div class="order-list-item">
       <div class="order-meta">
-        <div class="order-title">${ord.client||'（未填客戶名稱）'}${ord.no?' ／ '+ord.no:''}</div>
+        <div class="order-title">${ord.no?ord.no+' ／ ':''}${ord.client||'（未填客戶名稱）'}</div>
         <div class="order-sub">📅 ${ord.date||'—'} &nbsp;｜&nbsp; 最後修改 ${dateStr} &nbsp;｜&nbsp; ${itemCount} 筆品項 &nbsp; ${typeLabel}</div>
       </div>
       <div class="order-actions">
@@ -1525,7 +1525,7 @@ function renderSummary(){
   el.innerHTML=items.map((it,i)=>`
     <div class="item-card" id="item-card-${i}">
       <div class="item-header">
-        <span class="item-title">Item ${i+1}｜${it.type==='hinge'?'🔩 框形':'🛤 軌道'}｜${it.room||'—'}｜${it.width}×${it.height}mm｜${it.color||'—'}</span>
+        <span class="item-title">Item ${i+1}｜${it.type==='hinge'?'框形':'軌道'}｜${it.room||'—'}｜${it.width}×${it.height}mm｜${it.color||'—'}</span>
         <div style="display:flex;gap:8px;align-items:center">
           <button class="btn btn-secondary" style="font-size:12px;padding:5px 12px" onclick="openForm('${it.type}',${i})">編輯</button>
           <button class="btn btn-danger" id="del-btn-${i}" onclick="showDeleteConfirm(${i})">刪除</button>
