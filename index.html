@@ -725,7 +725,7 @@ h2{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px;padding-botto
     <button class="btn" style="background:#4A90D9;color:#fff" onclick="
       const c=document.getElementById('s1-client')?.value||'';
       const n=document.getElementById('s1-no')?.value||'';
-      const parts=[c,n].filter(Boolean);
+      const parts=[n,c].filter(Boolean);
       document.title=parts.length?parts.join('_'):'鴻鋌百葉窗採購單';
       setTimeout(()=>window.print(),100);
     ">🖨 列印 / 儲存PDF</button>
