@@ -184,7 +184,7 @@ h2{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px;padding-botto
     </div>
   </div>
   <div class="btn-row">
-    <button class="btn btn-primary" onclick="goStep(2)">下一步：新增品項 →</button>
+    <button class="btn btn-primary" onclick="goToItems()">下一步：新增品項 →</button>
   </div>
 </div>
 </div>
@@ -1157,6 +1157,20 @@ const ALL_COLORS=[...WHITE_COLORS,...WOOD_COLORS];
 
 let items=[], editIdx=-1;
 
+// 從「訂單基本資料」進入品項管理前，檢查訂單號碼／客戶名稱是否重複
+function goToItems(){
+  const no=(document.getElementById('s1-no').value||'').trim();
+  const client=(document.getElementById('s1-client').value||'').trim();
+  const others=allOrders.filter(o=>o.id!==currentOrderId);
+  const dup=[];
+  if(no && others.some(o=>(o.no||'').trim()===no))
+    dup.push(`訂單號碼「${no}」已存在於訂單列表，請勿重複`);
+  if(client && others.some(o=>(o.client||'').trim()===client))
+    dup.push(`客戶名稱「${client}」已存在於訂單列表，請勿重複`);
+  if(dup.length){ showErr(dup); return; }
+  goStep(2);
+}
+
 function goStep(n){
   document.querySelectorAll('.step-page').forEach(p=>p.classList.remove('active'));
   if(n===0){
@@ -1166,8 +1180,8 @@ function goStep(n){
     document.getElementById('step2').classList.add('active');
     const clientEl=document.getElementById('s1-client');
     const noEl=document.getElementById('s1-no');
-    const subtitle=[(clientEl?clientEl.value:''),(noEl?noEl.value:'')].filter(Boolean).join('｜')||'—';
-    document.getElementById('s2-subtitle').textContent='客戶：'+subtitle;
+    const subtitle=[(noEl?noEl.value:''),(clientEl?clientEl.value:'')].filter(Boolean).join('　｜　')||'—';
+    document.getElementById('s2-subtitle').textContent=subtitle;
     renderSummary();
     // 自動儲存
     if(currentOrderId) { saveCurrentOrder(); showToast('💾 已自動儲存並同步'); }
@@ -1563,8 +1577,8 @@ function goReport(){
   const today=new Date().toLocaleDateString('zh-TW');
   const clientName=document.getElementById('s1-client').value||'';
   const orderNo=document.getElementById('s1-no').value||'';
-  // 動態更新標題，讓PDF檔案名稱顯示客戶名稱+訂單號碼
-  const titleParts=[clientName,orderNo].filter(Boolean);
+  // 動態更新標題，讓PDF檔案名稱顯示訂單號碼+客戶名稱（單號在前）
+  const titleParts=[orderNo,clientName].filter(Boolean);
   document.title = titleParts.length ? titleParts.join('_') : '鴻鋌百葉窗採購單';
   document.getElementById('r-client').textContent=clientName||'—';
   document.getElementById('r-no').textContent=orderNo||'—';
