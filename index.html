@@ -756,6 +756,7 @@ h2{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px;padding-botto
       </thead>
       <tbody id="report-tbody"></tbody>
     </table>
+    <div id="report-diagrams"></div>
     <div class="report-notes">
       <h3>備註：</h3>
       <div class="notes-grid" id="report-notes"></div>
@@ -1570,6 +1571,158 @@ function cancelDelete(i){
 }
 function deleteItem(i){items.splice(i,1);if(currentOrderId) saveCurrentOrder();renderSummary();}
 
+// ══════════════════════════════════════════
+//  框形百葉窗等比例產圖引擎
+// ══════════════════════════════════════════
+const SD_OUTER=22, SD_BOARD=130, SD_STILE=57, SD_TPOST=44;
+function sdLouvers(c,lx,lw,yTop,yBot,LV,scale,rod){
+  const region=(yBot-yTop)/scale;
+  const n=region>0?Math.ceil(region/LV):0;
+  let out=''; const cx=lx+lw/2;
+  const inset=Math.min(12*scale,4.5);
+  if(n>0){
+    const slot=(yBot-yTop)/n, faceH=slot*0.92;
+    for(let i=0;i<n;i++){
+      const y0=yTop+i*slot+slot*0.04, yf=y0+faceH;
+      out+=`<path d="M ${lx} ${y0} L ${lx+lw} ${y0} L ${lx+lw-inset} ${yf} L ${lx+inset} ${yf} Z" fill="#fff" stroke="${c}" stroke-width="0.9" stroke-linejoin="round"/>`;
+    }
+    if(rod==='normal'){
+      const rw=Math.max(2.4,6*scale), padY=(yBot-yTop)*0.03;
+      out+=`<rect x="${cx-rw/2}" y="${yTop+padY}" width="${rw}" height="${(yBot-padY)-(yTop+padY)}" rx="${rw/2}" fill="#fff" stroke="${c}" stroke-width="1"/>`;
+    }
+  }
+  return out;
+}
+function sdPanel(px,pyTop,pyBot,pw,LV,scale,rod){
+  const c='#2b2b2b', st=SD_STILE*scale, b=SD_BOARD*scale, ph=pyBot-pyTop;
+  let s=`<rect x="${px}" y="${pyTop}" width="${pw}" height="${ph}" fill="#fff" stroke="${c}" stroke-width="1"/>`;
+  const lx=px+st, lw=pw-2*st, lyTop=pyTop+b, lyBot=pyBot-b;
+  if(lw<=0||lyBot<=lyTop) return s;
+  s+=`<line x1="${lx}" y1="${pyTop}" x2="${lx}" y2="${pyBot}" stroke="${c}" stroke-width="1"/>`;
+  s+=`<line x1="${lx+lw}" y1="${pyTop}" x2="${lx+lw}" y2="${pyBot}" stroke="${c}" stroke-width="1"/>`;
+  s+=sdLouvers(c,lx,lw,lyTop,lyBot,LV,scale,rod);
+  s+=`<line x1="${lx}" y1="${lyTop}" x2="${lx+lw}" y2="${lyTop}" stroke="${c}" stroke-width="1"/>`;
+  s+=`<line x1="${lx}" y1="${lyBot}" x2="${lx+lw}" y2="${lyBot}" stroke="${c}" stroke-width="1"/>`;
+  return s;
+}
+function sdParseCfg(cfg){ const segs=[]; let cur=0; for(const ch of cfg){ if(ch==='T'){segs.push(cur);cur=0;} else cur++; } segs.push(cur); return segs; }
+function sdLayerData(scale,W,cfg,posArr){
+  cfg=(cfg||'LR').toUpperCase().replace(/[^LRTCBDG]/g,'').replace(/[CBDG]/g,'T'); if(!cfg)cfg='LR';
+  const segs=sdParseCfg(cfg), nT=segs.length-1;
+  const posT=[]; for(let i=0;i<nT;i++){ const v=parseFloat(posArr[i]); posT.push(isNaN(v)?(SD_OUTER+(W-2*SD_OUTER)*(i+1)/(nT+1)):v); }
+  const bmm=[SD_OUTER]; for(let i=0;i<nT;i++) bmm.push(posT[i]); bmm.push(W-SD_OUTER);
+  return {segs,bmm,posT};
+}
+function sdLayerPanels(ox,scale,layerTop,layerBot,ld,LV,rod){
+  let s='';
+  for(let seg=0; seg<ld.segs.length; seg++){
+    let leftMM=ld.bmm[seg], rightMM=ld.bmm[seg+1];
+    if(seg>0) leftMM+=SD_TPOST/2;
+    if(seg<ld.segs.length-1) rightMM-=SD_TPOST/2;
+    const cnt=ld.segs[seg], pwmm=cnt>0?(rightMM-leftMM)/cnt:0, panelW=pwmm*scale;
+    let curX=ox+leftMM*scale;
+    for(let i=0;i<cnt;i++){ s+=sdPanel(curX,layerTop,layerBot,panelW,LV,scale,rod); curX+=panelW; }
+  }
+  return s;
+}
+function sdDimH(c,x0,x1,y,label){
+  let s=`<line x1="${x0}" y1="${y}" x2="${x1}" y2="${y}" stroke="${c}" stroke-width="1"/>`;
+  s+=`<path d="M ${x0} ${y} l 6 -4 m -6 4 l 6 4" fill="none" stroke="${c}" stroke-width="1"/>`;
+  s+=`<path d="M ${x1} ${y} l -6 -4 m 6 4 l -6 4" fill="none" stroke="${c}" stroke-width="1"/>`;
+  s+=`<line x1="${x0}" y1="${y-8}" x2="${x0}" y2="${y+4}" stroke="${c}" stroke-width="0.8"/>`;
+  s+=`<line x1="${x1}" y1="${y-8}" x2="${x1}" y2="${y+4}" stroke="${c}" stroke-width="0.8"/>`;
+  const tx=(x0+x1)/2;
+  s+=`<rect x="${tx-24}" y="${y-9}" width="48" height="18" fill="#fff"/>`;
+  s+=`<text x="${tx}" y="${y+5}" fill="${c}" font-size="13" text-anchor="middle">${label}</text>`;
+  return s;
+}
+function sdDimV(c,x,y0,y1,label){
+  let s=`<line x1="${x}" y1="${y0}" x2="${x}" y2="${y1}" stroke="${c}" stroke-width="1"/>`;
+  s+=`<path d="M ${x} ${y0} l -4 6 m 4 -6 l 4 6" fill="none" stroke="${c}" stroke-width="1"/>`;
+  s+=`<path d="M ${x} ${y1} l -4 -6 m 4 6 l 4 -6" fill="none" stroke="${c}" stroke-width="1"/>`;
+  s+=`<line x1="${x-4}" y1="${y0}" x2="${x+8}" y2="${y0}" stroke="${c}" stroke-width="0.8"/>`;
+  s+=`<line x1="${x-4}" y1="${y1}" x2="${x+8}" y2="${y1}" stroke="${c}" stroke-width="0.8"/>`;
+  const ty=(y0+y1)/2;
+  s+=`<rect x="${x-9}" y="${ty-24}" width="18" height="48" fill="#fff"/>`;
+  s+=`<text x="${x}" y="${ty}" fill="${c}" font-size="13" text-anchor="middle" transform="rotate(90 ${x} ${ty})">${label}</text>`;
+  return s;
+}
+// 主函式：從品項資料產生 SVG
+function buildShutterSVG(it){
+  const W=Math.max(200,+it.width||0), H=Math.max(300,+it.height||0);
+  if(!W||!H) return '';
+  const LV=parseInt((it.louvre||'76'))||76;
+  const rod=(it.rod||'').includes('齒輪齒條')?'hidden':'normal';
+  // 上部結構
+  const upCfg=(it.panel && it.panel!=='Other')? it.panel : (it['panel-custom']||'LR');
+  const upTpos=((it['main-tcb']||{}).tPos)||[];
+  // 雙層判定
+  const dh=(it.dhung||'NO');
+  const isDouble=dh.indexOf('Yes')>=0;
+  const diffCfg=dh.indexOf('different')>=0 || dh.indexOf('不同')>=0;
+  // 橫T
+  const htbar=(it.htbar||'');
+  const needHbar=htbar.indexOf('需要')>=0 && htbar.indexOf('不需要')<0;
+  // 橫T位置
+  let hbarPos=0;
+  if(isDouble){
+    const dl=(it.dhloc||'');
+    if(dl.indexOf('中心')>=0||dl.indexOf('Centre')>=0) hbarPos=H/2;
+    else if(dl.indexOf('自定義')>=0||dl.indexOf('Custom')>=0) hbarPos=parseFloat(it['dhloc-custom'])||H/2;
+    else hbarPos=H/2;
+  }
+  // 下部結構
+  const loCfg = diffCfg ? (it['panel-lower']||upCfg) : upCfg;
+  const loTpos = diffCfg ? (((it['lower-tcb']||{}).tPos)||[]) : upTpos;
+
+  const maxW=660, maxH=480, padL=18, padR=52, padT=30, padB=42;
+  const scale=Math.min(maxW/W, maxH/H);
+  const sw=W*scale, sh=H*scale, ox=padL, oy=padT;
+  const o=SD_OUTER*scale, c='#2b2b2b', thw=SD_TPOST*scale, dimC='#c0392b';
+  const iy=oy+o, ih=sh-2*o, ix=ox+o, iw=sw-2*o;
+
+  let hasSplit=false, splitCenterY, hbarTopY, hbarBotY;
+  if(isDouble && hbarPos>0){
+    const cy=oy+(H-hbarPos)*scale;
+    if(cy>iy+18 && cy<iy+ih-18){ hasSplit=true; splitCenterY=cy; hbarTopY=cy-thw/2; hbarBotY=cy+thw/2; }
+  }
+  const drawHbar=hasSplit && needHbar;
+
+  let upperTop,upperBot,lowerTop,lowerBot;
+  if(hasSplit && drawHbar){ upperTop=iy; upperBot=hbarTopY; lowerTop=hbarBotY; lowerBot=iy+ih; }
+  else if(hasSplit){ upperTop=iy; upperBot=splitCenterY; lowerTop=splitCenterY; lowerBot=iy+ih; }
+  else { upperTop=iy; upperBot=iy+ih; }
+
+  const ldU=sdLayerData(scale,W,upCfg,upTpos);
+  const ldL=hasSplit?sdLayerData(scale,W,loCfg,loTpos):null;
+
+  let s=`<svg width="${sw+padL+padR}" height="${sh+padT+padB}" viewBox="0 0 ${sw+padL+padR} ${sh+padT+padB}" xmlns="http://www.w3.org/2000/svg">`;
+  s+=`<rect x="${ox}" y="${oy}" width="${sw}" height="${sh}" fill="#fff" stroke="${c}" stroke-width="1.4"/>`;
+  s+=sdLayerPanels(ox,scale,upperTop,upperBot,ldU,LV,rod);
+  if(hasSplit) s+=sdLayerPanels(ox,scale,lowerTop,lowerBot,ldL,LV,rod);
+  if(drawHbar){
+    s+=`<rect x="${ix}" y="${hbarTopY}" width="${iw}" height="${thw}" fill="#d8d8d8" stroke="${c}" stroke-width="1"/>`;
+  }
+  const TOL=1;
+  if(hasSplit){
+    const upPos=ldU.posT||[], loPos=ldL.posT||[], usedLo=new Set();
+    upPos.forEach((up,ui)=>{
+      const tcx=ox+up*scale; let matched=-1;
+      loPos.forEach((lp,li)=>{ if(!usedLo.has(li)&&Math.abs(lp-up)<=TOL) matched=li; });
+      if(matched>=0){ usedLo.add(matched); s+=`<rect x="${tcx-thw/2}" y="${iy}" width="${thw}" height="${ih}" fill="#d8d8d8" stroke="${c}" stroke-width="1"/>`; }
+      else { s+=`<rect x="${tcx-thw/2}" y="${upperTop}" width="${thw}" height="${upperBot-upperTop}" fill="#d8d8d8" stroke="${c}" stroke-width="1"/>`; }
+      s+=`<text x="${tcx}" y="${iy-5}" fill="#1a6dcc" font-size="10" text-anchor="middle">T${ui+1}</text>`;
+    });
+    loPos.forEach((lp,li)=>{ if(usedLo.has(li))return; const tcx=ox+lp*scale; s+=`<rect x="${tcx-thw/2}" y="${lowerTop}" width="${thw}" height="${lowerBot-lowerTop}" fill="#d8d8d8" stroke="${c}" stroke-width="1"/>`; });
+  } else {
+    (ldU.posT||[]).forEach((up,ui)=>{ const tcx=ox+up*scale; s+=`<rect x="${tcx-thw/2}" y="${iy}" width="${thw}" height="${ih}" fill="#d8d8d8" stroke="${c}" stroke-width="1"/>`; s+=`<text x="${tcx}" y="${iy-5}" fill="#1a6dcc" font-size="10" text-anchor="middle">T${ui+1}</text>`; });
+  }
+  s+=sdDimH(dimC,ox,ox+sw,oy+sh+24,`${W}`);
+  s+=sdDimV(dimC,ox+sw+28,oy,oy+sh,`${H}`);
+  s+=`</svg>`;
+  return s;
+}
+
 function goReport(){
   if(!items.length){showErr(['請至少新增一筆品項後再產生報表']);return;}
   document.querySelectorAll('.step-page').forEach(p=>p.classList.remove('active'));
@@ -1766,6 +1919,26 @@ function goReport(){
       :'';
     return `<div class="note-item"><strong>ITEM ${i+1}：</strong>${lines.join('<br>')}${timberHTML}${imagesHTML}</div>`;
   }).join('');
+
+  // ── 框形品項的等比例圖形 ──
+  const diagWrap=document.getElementById('report-diagrams');
+  if(diagWrap){
+    const hingeItems=items.map((it,i)=>({it,i})).filter(x=>x.it.type==='hinge');
+    if(hingeItems.length){
+      diagWrap.innerHTML='<h3 style="font-size:14px;font-weight:700;margin:18px 0 8px;border-bottom:2px solid #1a1a2e;padding-bottom:4px">框形結構圖（等比例）</h3>'
+        + hingeItems.map(({it,i})=>{
+            let svg='';
+            try{ svg=buildShutterSVG(it); }catch(e){ svg=''; }
+            const cap=`ITEM ${i+1}　${it.room||''}　${it.width}×${it.height}mm　結構：${(it.panel&&it.panel!=='Other')?it.panel:(it['panel-custom']||'—')}`;
+            return `<div style="margin-bottom:20px;page-break-inside:avoid">
+              <div style="font-size:12px;font-weight:600;color:#1a1a2e;margin-bottom:6px">${cap}</div>
+              <div style="border:1px solid #eee;border-radius:8px;padding:10px;display:inline-block;background:#fff">${svg||'<span style="color:#c00;font-size:12px">此品項缺寬高，無法產生圖形</span>'}</div>
+            </div>`;
+          }).join('');
+    } else {
+      diagWrap.innerHTML='';
+    }
+  }
 }
 
 // ── 木料 ──
