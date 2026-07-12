@@ -1620,7 +1620,7 @@ function sdLayerData(scale,W,cfg,posArr){
   const segs=sdParseCfg(cfg), nT=segs.length-1;
   const posT=[]; for(let i=0;i<nT;i++){ const v=parseFloat(posArr[i]); posT.push(isNaN(v)?(SD_OUTER+(W-2*SD_OUTER)*(i+1)/(nT+1)):v); }
   const bmm=[SD_OUTER]; for(let i=0;i<nT;i++) bmm.push(posT[i]); bmm.push(W-SD_OUTER);
-  return {segs,bmm,posT};
+  return {segs,bmm,posT,cfgClean:cfg};
 }
 function sdLayerPanels(ox,scale,layerTop,layerBot,ld,LV,rod){
   let s='';
@@ -1656,6 +1656,46 @@ function sdDimV(c,x,y0,y1,label){
   s+=`<text x="${x}" y="${ty}" fill="${c}" font-size="13" text-anchor="middle" transform="rotate(90 ${x} ${ty})">${label}</text>`;
   return s;
 }
+// 俯視圖：雙線斜桿（含兩端套接頭）
+function sdTiltBar(c,hx,hy,ex,ey){
+  const dx=ex-hx, dy=ey-hy, len=Math.hypot(dx,dy)||1;
+  const ux=dx/len, uy=dy/len, nx=-uy, ny=ux;
+  const barW=3, cuffLen=14, cuffW=5;
+  let s='';
+  const c1x=hx+ux*4, c1y=hy+uy*4, c1ex=c1x+ux*cuffLen, c1ey=c1y+uy*cuffLen;
+  s+=`<path d="M ${c1x+nx*cuffW} ${c1y+ny*cuffW} L ${c1ex+nx*cuffW} ${c1ey+ny*cuffW} L ${c1ex-nx*cuffW} ${c1ey-ny*cuffW} L ${c1x-nx*cuffW} ${c1y-ny*cuffW} Z" fill="#fff" stroke="${c}" stroke-width="1"/>`;
+  const c2ex=ex-ux*2, c2ey=ey-uy*2, c2x=c2ex-ux*cuffLen, c2y=c2ey-uy*cuffLen;
+  s+=`<path d="M ${c2x+nx*cuffW} ${c2y+ny*cuffW} L ${c2ex+nx*cuffW} ${c2ey+ny*cuffW} L ${c2ex-nx*cuffW} ${c2ey-ny*cuffW} L ${c2x-nx*cuffW} ${c2y-ny*cuffW} Z" fill="#fff" stroke="${c}" stroke-width="1"/>`;
+  s+=`<line x1="${c1ex+nx*barW}" y1="${c1ey+ny*barW}" x2="${c2x+nx*barW}" y2="${c2y+ny*barW}" stroke="${c}" stroke-width="1"/>`;
+  s+=`<line x1="${c1ex-nx*barW}" y1="${c1ey-ny*barW}" x2="${c2x-nx*barW}" y2="${c2y-ny*barW}" stroke="${c}" stroke-width="1"/>`;
+  return s;
+}
+function sdFrameMark(c,x,topY,side){
+  const w=16, h=20, notch=7;
+  if(side==='left') return `<path d="M ${x} ${topY-h/2} L ${x+w} ${topY-h/2} L ${x+w} ${topY-h/2+notch} L ${x+notch} ${topY-h/2+notch} L ${x+notch} ${topY+h/2} L ${x} ${topY+h/2} Z" fill="#fff" stroke="${c}" stroke-width="1.2"/>`;
+  return `<path d="M ${x} ${topY-h/2} L ${x-w} ${topY-h/2} L ${x-w} ${topY-h/2+notch} L ${x-notch} ${topY-h/2+notch} L ${x-notch} ${topY+h/2} L ${x} ${topY+h/2} Z" fill="#fff" stroke="${c}" stroke-width="1.2"/>`;
+}
+function sdTMark(c,x,topY){
+  const topW=30, topH=8, stemW=16, stemH=13;
+  const tx=x-topW/2, sx=x-stemW/2, sxr=x+stemW/2;
+  const y0=topY-topH-2, y1=y0+topH, y2=y1+stemH;
+  return `<path d="M ${tx} ${y0} L ${x+topW/2} ${y0} L ${x+topW/2} ${y1} L ${sxr} ${y1} L ${sxr} ${y2} L ${sx} ${y2} L ${sx} ${y1} L ${tx} ${y1} Z" fill="#fff" stroke="${c}" stroke-width="1.2" stroke-linejoin="round"/>`;
+}
+// 依結構資料算出各門片的畫面 x 範圍與 L/R 類型（供俯視圖）
+function sdPanelRects(ox,scale,ld,cfgClean){
+  const rects=[];
+  const segTypes=[]; { let tmp=[]; for(const ch of cfgClean){ if(ch==='T'){segTypes.push(tmp);tmp=[];} else tmp.push(ch);} segTypes.push(tmp); }
+  for(let seg=0; seg<ld.segs.length; seg++){
+    let leftMM=ld.bmm[seg], rightMM=ld.bmm[seg+1];
+    if(seg>0) leftMM+=SD_TPOST/2;
+    if(seg<ld.segs.length-1) rightMM-=SD_TPOST/2;
+    const cnt=ld.segs[seg], pwmm=cnt>0?(rightMM-leftMM)/cnt:0, panelW=pwmm*scale;
+    let curX=ox+leftMM*scale;
+    for(let i=0;i<cnt;i++){ rects.push({x0:curX,x1:curX+panelW,type:(segTypes[seg]&&segTypes[seg][i])||'L'}); curX+=panelW; }
+  }
+  return rects;
+}
+
 // 主函式：從品項資料產生 SVG
 function buildShutterSVG(it){
   const W=Math.max(200,+it.width||0), H=Math.max(300,+it.height||0);
@@ -1685,6 +1725,7 @@ function buildShutterSVG(it){
   const loTpos = diffCfg ? (((it['lower-tcb']||{}).tPos)||[]) : upTpos;
 
   const maxW=660, maxH=480, padL=18, padR=52, padT=30, padB=42;
+  const topViewH=76; // 俯視圖預留高度
   const scale=Math.min(maxW/W, maxH/H);
   const sw=W*scale, sh=H*scale, ox=padL, oy=padT;
   const o=SD_OUTER*scale, c='#2b2b2b', thw=SD_TPOST*scale, dimC='#c0392b';
@@ -1705,7 +1746,7 @@ function buildShutterSVG(it){
   const ldU=sdLayerData(scale,W,upCfg,upTpos);
   const ldL=hasSplit?sdLayerData(scale,W,loCfg,loTpos):null;
 
-  let s=`<svg width="${sw+padL+padR}" height="${sh+padT+padB}" viewBox="0 0 ${sw+padL+padR} ${sh+padT+padB}" xmlns="http://www.w3.org/2000/svg">`;
+  let s=`<svg width="${sw+padL+padR}" height="${sh+padT+padB+topViewH}" viewBox="0 0 ${sw+padL+padR} ${sh+padT+padB+topViewH}" xmlns="http://www.w3.org/2000/svg">`;
   s+=`<rect x="${ox}" y="${oy}" width="${sw}" height="${sh}" fill="#fff" stroke="${c}" stroke-width="1.4"/>`;
   s+=sdLayerPanels(ox,scale,upperTop,upperBot,ldU,LV,rod);
   if(hasSplit) s+=sdLayerPanels(ox,scale,lowerTop,lowerBot,ldL,LV,rod);
@@ -1728,6 +1769,20 @@ function buildShutterSVG(it){
   }
   s+=sdDimH(dimC,ox,ox+sw,oy+sh+24,`${W}`);
   s+=sdDimV(dimC,ox+sw+28,oy,oy+sh,`${H}`);
+
+  // ── 俯視開門圖（依上部結構，畫在主圖下方）──
+  const cfgCleanU=(upCfg||'LR').toUpperCase().replace(/[^LRTCBDG]/g,'').replace(/[CBDG]/g,'T')||'LR';
+  const prU=sdPanelRects(ox,scale,ldU,cfgCleanU);
+  const topY=oy+sh+44, depth=40;
+  sdFrameMark && (s+=sdFrameMark(c,ox,topY,'left'));
+  s+=sdFrameMark(c,ox+sw,topY,'right');
+  const tcU=(ldU.bmm||[]).slice(1,-1).map(v=>ox+v*scale);
+  tcU.forEach(tc=>{ s+=sdTMark(c,tc,topY); });
+  prU.forEach(pp=>{
+    if(pp.type==='R') s+=sdTiltBar(c,pp.x1-6,topY,pp.x0+6,topY+depth);
+    else s+=sdTiltBar(c,pp.x0+6,topY,pp.x1-6,topY+depth);
+  });
+
   s+=`</svg>`;
   return s;
 }
