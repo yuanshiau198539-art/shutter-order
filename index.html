@@ -1606,7 +1606,7 @@ function deleteItem(i){items.splice(i,1);if(currentOrderId) saveCurrentOrder();r
 // ══════════════════════════════════════════
 //  框形百葉窗等比例產圖引擎
 // ══════════════════════════════════════════
-const SD_OUTER=22, SD_BOARD=130, SD_STILE=57, SD_TPOST=44;
+const SD_OUTER=22, SD_BOARD=130, SD_STILE=57, SD_TPOST=44, SD_MID=76;
 function sdLouvers(c,lx,lw,yTop,yBot,LV,scale,rod){
   const region=(yBot-yTop)/scale;
   const n=region>0?Math.ceil(region/LV):0;
@@ -1625,16 +1625,26 @@ function sdLouvers(c,lx,lw,yTop,yBot,LV,scale,rod){
   }
   return out;
 }
-function sdPanel(px,pyTop,pyBot,pw,LV,scale,rod){
+function sdPanel(px,pyTop,pyBot,pw,LV,scale,rod,midYs){
   const c='#2b2b2b', st=SD_STILE*scale, b=SD_BOARD*scale, ph=pyBot-pyTop;
   let s=`<rect x="${px}" y="${pyTop}" width="${pw}" height="${ph}" fill="#fff" stroke="${c}" stroke-width="1"/>`;
   const lx=px+st, lw=pw-2*st, lyTop=pyTop+b, lyBot=pyBot-b;
   if(lw<=0||lyBot<=lyTop) return s;
   s+=`<line x1="${lx}" y1="${pyTop}" x2="${lx}" y2="${pyBot}" stroke="${c}" stroke-width="1"/>`;
   s+=`<line x1="${lx+lw}" y1="${pyTop}" x2="${lx+lw}" y2="${pyBot}" stroke="${c}" stroke-width="1"/>`;
-  s+=sdLouvers(c,lx,lw,lyTop,lyBot,LV,scale,rod);
+  // 找出落在此門片葉片區內的中板
+  const mh=SD_MID*scale;
+  const mids=(midYs||[]).filter(my=>my-mh/2>lyTop+2 && my+mh/2<lyBot-2).sort((a,b)=>a-b);
+  // 依中板把葉片區切成數段，各段獨立填葉片
+  let bandTop=lyTop;
+  const bands=[];
+  mids.forEach(my=>{ bands.push([bandTop, my-mh/2]); bandTop=my+mh/2; });
+  bands.push([bandTop, lyBot]);
+  bands.forEach(([y0,y1])=>{ if(y1>y0) s+=sdLouvers(c,lx,lw,y0,y1,LV,scale,rod); });
   s+=`<line x1="${lx}" y1="${lyTop}" x2="${lx+lw}" y2="${lyTop}" stroke="${c}" stroke-width="1"/>`;
   s+=`<line x1="${lx}" y1="${lyBot}" x2="${lx+lw}" y2="${lyBot}" stroke="${c}" stroke-width="1"/>`;
+  // 畫中板（實心橫板）
+  mids.forEach(my=>{ s+=`<rect x="${lx}" y="${my-mh/2}" width="${lw}" height="${mh}" fill="#eee" stroke="${c}" stroke-width="1"/>`; });
   return s;
 }
 function sdParseCfg(cfg){ const segs=[]; let cur=0; for(const ch of cfg){ if(ch==='T'){segs.push(cur);cur=0;} else cur++; } segs.push(cur); return segs; }
@@ -1645,7 +1655,7 @@ function sdLayerData(scale,W,cfg,posArr){
   const bmm=[SD_OUTER]; for(let i=0;i<nT;i++) bmm.push(posT[i]); bmm.push(W-SD_OUTER);
   return {segs,bmm,posT,cfgClean:cfg};
 }
-function sdLayerPanels(ox,scale,layerTop,layerBot,ld,LV,rod){
+function sdLayerPanels(ox,scale,layerTop,layerBot,ld,LV,rod,midYs){
   let s='';
   for(let seg=0; seg<ld.segs.length; seg++){
     let leftMM=ld.bmm[seg], rightMM=ld.bmm[seg+1];
@@ -1653,7 +1663,7 @@ function sdLayerPanels(ox,scale,layerTop,layerBot,ld,LV,rod){
     if(seg<ld.segs.length-1) rightMM-=SD_TPOST/2;
     const cnt=ld.segs[seg], pwmm=cnt>0?(rightMM-leftMM)/cnt:0, panelW=pwmm*scale;
     let curX=ox+leftMM*scale;
-    for(let i=0;i<cnt;i++){ s+=sdPanel(curX,layerTop,layerBot,panelW,LV,scale,rod); curX+=panelW; }
+    for(let i=0;i<cnt;i++){ s+=sdPanel(curX,layerTop,layerBot,panelW,LV,scale,rod,midYs); curX+=panelW; }
   }
   return s;
 }
@@ -1769,10 +1779,19 @@ function buildShutterSVG(it){
   const ldU=sdLayerData(scale,W,upCfg,upTpos);
   const ldL=hasSplit?sdLayerData(scale,W,loCfg,loTpos):null;
 
+  // 中板位置（由下往上到中心 → 換算螢幕 Y）
+  const midYs=[];
+  const midtype=(it.midtype||'');
+  if(midtype.indexOf('中間')>=0 || midtype.indexOf('Centre')>=0){
+    midYs.push(oy+(H-H/2)*scale);
+  } else if(midtype.indexOf('自定義')>=0 || midtype.indexOf('Custom')>=0){
+    [it.mid1,it.mid2].forEach(mv=>{ const v=parseFloat(mv); if(!isNaN(v)&&v>0&&v<H) midYs.push(oy+(H-v)*scale); });
+  }
+
   let s=`<svg width="${sw+padL+padR}" height="${sh+padT+padB+topViewH}" viewBox="0 0 ${sw+padL+padR} ${sh+padT+padB+topViewH}" xmlns="http://www.w3.org/2000/svg">`;
   s+=`<rect x="${ox}" y="${oy}" width="${sw}" height="${sh}" fill="#fff" stroke="${c}" stroke-width="1.4"/>`;
-  s+=sdLayerPanels(ox,scale,upperTop,upperBot,ldU,LV,rod);
-  if(hasSplit) s+=sdLayerPanels(ox,scale,lowerTop,lowerBot,ldL,LV,rod);
+  s+=sdLayerPanels(ox,scale,upperTop,upperBot,ldU,LV,rod,midYs);
+  if(hasSplit) s+=sdLayerPanels(ox,scale,lowerTop,lowerBot,ldL,LV,rod,midYs);
   if(drawHbar){
     s+=`<rect x="${ix}" y="${hbarTopY}" width="${iw}" height="${thw}" fill="#d8d8d8" stroke="${c}" stroke-width="1"/>`;
   }
@@ -1811,13 +1830,13 @@ function buildShutterSVG(it){
     const panelW=((rightMM-leftMM)/cnt)*scale;
     const baseX=ox+leftMM*scale;
     const types=segTypesU[seg]||[];
-    // 連續相同字母 → 交替方向（L 起始 right-down；R 起始 left-down），相鄰把手相連成 V
+    // 連續相同字母 → 交替方向形成 V（不論 LL/RR：每組左片右下、右片左下＝正V）
     const dirs=new Array(cnt).fill('R');
     let i=0;
     while(i<cnt){
       let j=i; while(j+1<cnt && types[j+1]===types[i]) j++;
-      const base=(types[i]==='R')?'L':'R';
-      for(let k=i;k<=j;k++){ dirs[k]=((k-i)%2===0)?base:(base==='R'?'L':'R'); }
+      // 該組（run）i..j：第一片 right-down，其後左右交替 → 相鄰把手相連成正 V
+      for(let k=i;k<=j;k++){ dirs[k]=((k-i)%2===0)?'R':'L'; }
       i=j+1;
     }
     for(let k=0;k<cnt;k++){
