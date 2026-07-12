@@ -1830,17 +1830,24 @@ function buildShutterSVG(it){
     const panelW=((rightMM-leftMM)/cnt)*scale;
     const baseX=ox+leftMM*scale;
     const types=segTypesU[seg]||[];
-    // 連續相同字母 → 交替方向形成 V（不論 LL/RR：每組左片右下、右片左下＝正V）
+    // 連續相同字母為一組。L 組：第一片 right-down 交替；R 組：取 L 組樣式後「反轉＋左右對調」（真正鏡像）
     const dirs=new Array(cnt).fill('R');
-    let i=0;
+    const groupId=new Array(cnt).fill(0);
+    let i=0, gid=0;
     while(i<cnt){
       let j=i; while(j+1<cnt && types[j+1]===types[i]) j++;
-      // 該組（run）i..j：第一片 right-down，其後左右交替 → 相鄰把手相連成正 V
-      for(let k=i;k<=j;k++){ dirs[k]=((k-i)%2===0)?'R':'L'; }
-      i=j+1;
+      const size=j-i+1;
+      let pat=[]; for(let k=0;k<size;k++) pat.push(k%2===0?'R':'L'); // L 組樣式
+      if(types[i]==='R'){ pat=pat.reverse().map(d=>d==='R'?'L':'R'); } // R 組＝鏡像
+      for(let k=0;k<size;k++){ dirs[i+k]=pat[k]; groupId[i+k]=gid; }
+      i=j+1; gid++;
     }
     for(let k=0;k<cnt;k++){
-      const x0=baseX+k*panelW, x1=x0+panelW;
+      const rawX0=baseX+k*panelW, rawX1=rawX0+panelW;
+      // 不同組交界留間隙：與左鄰不同組 → 左端內縮；與右鄰不同組 → 右端內縮
+      const gapL=(k>0 && groupId[k]!==groupId[k-1])? panelW*0.10 : 0;
+      const gapR=(k<cnt-1 && groupId[k]!==groupId[k+1])? panelW*0.10 : 0;
+      const x0=rawX0+gapL, x1=rawX1-gapR;
       if(dirs[k]==='R') s+=sdTiltBar(c,x0,topY,x1,topY+depth); // 鉸鏈左上→把手右下
       else s+=sdTiltBar(c,x1,topY,x0,topY+depth);              // 鉸鏈右上→把手左下
     }
