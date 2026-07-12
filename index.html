@@ -481,6 +481,7 @@ h2{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px;padding-botto
   </div>
   <div class="btn-row">
     <button class="btn btn-secondary" onclick="goStep(2)">取消</button>
+    <button class="btn btn-secondary" onclick="viewShutterDiagram()">🔍 查看圖示</button>
     <button class="btn btn-primary" onclick="saveItem('hinge')">✓ 儲存此品項</button>
   </div>
 </div>
@@ -756,7 +757,6 @@ h2{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px;padding-botto
       </thead>
       <tbody id="report-tbody"></tbody>
     </table>
-    <div id="report-diagrams"></div>
     <div class="report-notes">
       <h3>備註：</h3>
       <div class="notes-grid" id="report-notes"></div>
@@ -766,6 +766,15 @@ h2{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px;padding-botto
 
 <input type="file" id="import-file-input" accept=".json" style="display:none" onchange="handleImportFile(this)">
 <div class="toast" id="toast"></div>
+<div class="err-overlay" id="diagram-overlay" onclick="if(event.target===this)closeDiagram()">
+  <div style="background:#fff;border-radius:14px;max-width:92vw;max-height:92vh;overflow:auto;padding:20px;box-shadow:0 12px 40px rgba(0,0,0,.25)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:16px">
+      <h3 style="font-size:16px;font-weight:800;color:#1a1a2e">框形結構圖（等比例）</h3>
+      <button class="btn btn-secondary" onclick="closeDiagram()">✕ 關閉</button>
+    </div>
+    <div id="diagram-body" style="display:flex;justify-content:center"></div>
+  </div>
+</div>
 <div class="err-overlay" id="err-overlay" onclick="if(event.target===this)closeErr()">
   <div class="err-box">
     <h3>⚠️ 無法儲存</h3>
@@ -1723,6 +1732,35 @@ function buildShutterSVG(it){
   return s;
 }
 
+// 從目前框形表單的即時輸入，組出品項物件並顯示圖形
+function viewShutterDiagram(){
+  const p='h-';
+  const gv=id=>{const el=document.getElementById(p+id);if(!el)return'';if(el.type==='checkbox')return el.checked;return el.value||'';};
+  const it={
+    type:'hinge',
+    room:gv('room'),
+    width:gv('width'), height:gv('height'),
+    louvre:gv('louvre'), rod:gv('rod'),
+    panel:gv('panel'), 'panel-custom':gv('panel-custom'),
+    'panel-lower':gv('panel-lower'),
+    'main-tcb':collectTCBPositions('h-main'),
+    'lower-tcb':collectTCBPositions('h-lower'),
+    dhung:gv('dhung'), dhloc:gv('dhloc'), 'dhloc-custom':gv('dhloc-custom'),
+    htbar:gv('htbar'),
+    mid1:gv('mid1'), mid2:gv('mid2'), midtype:gv('midtype')
+  };
+  if(!it.width||!it.height){ showErr(['請先填寫寬度 Width 與 高度 Height 才能產生圖形']); return; }
+  let svg='';
+  try{ svg=buildShutterSVG(it); }catch(e){ svg=''; }
+  const body=document.getElementById('diagram-body');
+  body.innerHTML = svg
+    ? `<div style="border:1px solid #eee;border-radius:8px;padding:10px;background:#fff">${svg}</div>`
+    : '<span style="color:#c00">無法產生圖形，請確認欄位填寫</span>';
+  document.getElementById('diagram-overlay').classList.add('show');
+}
+function closeDiagram(){ document.getElementById('diagram-overlay').classList.remove('show'); }
+
+
 function goReport(){
   if(!items.length){showErr(['請至少新增一筆品項後再產生報表']);return;}
   document.querySelectorAll('.step-page').forEach(p=>p.classList.remove('active'));
@@ -1919,26 +1957,6 @@ function goReport(){
       :'';
     return `<div class="note-item"><strong>ITEM ${i+1}：</strong>${lines.join('<br>')}${timberHTML}${imagesHTML}</div>`;
   }).join('');
-
-  // ── 框形品項的等比例圖形 ──
-  const diagWrap=document.getElementById('report-diagrams');
-  if(diagWrap){
-    const hingeItems=items.map((it,i)=>({it,i})).filter(x=>x.it.type==='hinge');
-    if(hingeItems.length){
-      diagWrap.innerHTML='<h3 style="font-size:14px;font-weight:700;margin:18px 0 8px;border-bottom:2px solid #1a1a2e;padding-bottom:4px">框形結構圖（等比例）</h3>'
-        + hingeItems.map(({it,i})=>{
-            let svg='';
-            try{ svg=buildShutterSVG(it); }catch(e){ svg=''; }
-            const cap=`ITEM ${i+1}　${it.room||''}　${it.width}×${it.height}mm　結構：${(it.panel&&it.panel!=='Other')?it.panel:(it['panel-custom']||'—')}`;
-            return `<div style="margin-bottom:20px;page-break-inside:avoid">
-              <div style="font-size:12px;font-weight:600;color:#1a1a2e;margin-bottom:6px">${cap}</div>
-              <div style="border:1px solid #eee;border-radius:8px;padding:10px;display:inline-block;background:#fff">${svg||'<span style="color:#c00;font-size:12px">此品項缺寬高，無法產生圖形</span>'}</div>
-            </div>`;
-          }).join('');
-    } else {
-      diagWrap.innerHTML='';
-    }
-  }
 }
 
 // ── 木料 ──
