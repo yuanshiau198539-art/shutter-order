@@ -1616,7 +1616,7 @@ function sdPanel(px,pyTop,pyBot,pw,LV,scale,rod){
 }
 function sdParseCfg(cfg){ const segs=[]; let cur=0; for(const ch of cfg){ if(ch==='T'){segs.push(cur);cur=0;} else cur++; } segs.push(cur); return segs; }
 function sdLayerData(scale,W,cfg,posArr){
-  cfg=(cfg||'LR').toUpperCase().replace(/[^LRTCBDG]/g,'').replace(/[CBDG]/g,'T'); if(!cfg)cfg='LR';
+  cfg=(cfg||'LR').toUpperCase().replace(/[^LRT]/g,''); if(!cfg)cfg='LR';
   const segs=sdParseCfg(cfg), nT=segs.length-1;
   const posT=[]; for(let i=0;i<nT;i++){ const v=parseFloat(posArr[i]); posT.push(isNaN(v)?(SD_OUTER+(W-2*SD_OUTER)*(i+1)/(nT+1)):v); }
   const bmm=[SD_OUTER]; for(let i=0;i<nT;i++) bmm.push(posT[i]); bmm.push(W-SD_OUTER);
@@ -1771,7 +1771,7 @@ function buildShutterSVG(it){
   s+=sdDimV(dimC,ox+sw+28,oy,oy+sh,`${H}`);
 
   // ── 俯視開門圖（依上部結構，畫在主圖下方）──
-  const cfgCleanU=(upCfg||'LR').toUpperCase().replace(/[^LRTCBDG]/g,'').replace(/[CBDG]/g,'T')||'LR';
+  const cfgCleanU=(upCfg||'LR').toUpperCase().replace(/[^LRT]/g,'')||'LR';
   const prU=sdPanelRects(ox,scale,ldU,cfgCleanU);
   const topY=oy+sh+44, depth=40;
   sdFrameMark && (s+=sdFrameMark(c,ox,topY,'left'));
