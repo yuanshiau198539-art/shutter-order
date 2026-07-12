@@ -1017,8 +1017,16 @@ function renderOrderList(){
     wrap.innerHTML=`<div class="empty-orders"><div class="icon">📭</div><div>尚無任何訂單<br><span style="font-size:12px">點擊「建立新訂單」開始</span></div></div>`;
     return;
   }
-  // 最新的排前面
-  const sorted = [...allOrders].sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+  // 依訂單號碼排序（新到舊，最舊在最下）；編輯不影響位置
+  // 訂單號碼格式 HT-YYMM-NN → 取數字 YYMMNN 作為排序鍵，越大越新（越上面）
+  function orderKey(ord){
+    const m=(ord.no||'').match(/(\d{2})(\d{2})\D*(\d+)/); // 例 HT-2607-01
+    if(m){ return parseInt(m[1])*1000000 + parseInt(m[2])*10000 + parseInt(m[3]); }
+    // 無法解析者，退而用日期字串，再不行放最下
+    const d=(ord.date||'').replace(/\D/g,'');
+    return d?parseInt(d.slice(2))||0:0;
+  }
+  const sorted = [...allOrders].sort((a,b)=>orderKey(b)-orderKey(a));
   wrap.innerHTML = sorted.map(ord=>{
     const itemCount = (ord.items||[]).length;
     const types = [...new Set((ord.items||[]).map(it=>it.type))];
