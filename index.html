@@ -1246,6 +1246,17 @@ function fillForm(type,d){
   // 載入圖片
   document.getElementById(`${prefix}-img-list`).innerHTML='';
   if(d.images&&d.images.length) loadImages(prefix, d.images);
+  // 填完值後，重新觸發條件欄位的顯示邏輯，讓隱藏的輸入框（中板自定義、雙層位置、水平T、分段拉桿等）帶著存好的數值重新出現
+  if(type==='hinge'){
+    try{ toggleHSplitRod(); }catch(e){}
+    try{ toggleHDhung(); }catch(e){}
+    try{ toggleHHtbar(); }catch(e){}
+    try{ toggleHDhloc(); }catch(e){}
+    try{ toggleHMid(); }catch(e){}
+    try{ hPanelCalc(); }catch(e){}
+  } else {
+    try{ toggleTMid(); }catch(e){}
+  }
 }
 
 // ── 框形邏輯 ──
@@ -1776,16 +1787,37 @@ function buildShutterSVG(it){
 
   // ── 俯視開門圖（依上部結構，畫在主圖下方）──
   const cfgCleanU=(upCfg||'LR').toUpperCase().replace(/[^LRT]/g,'')||'LR';
-  const prU=sdPanelRects(ox,scale,ldU,cfgCleanU);
   const topY=oy+sh+44, depth=40;
-  sdFrameMark && (s+=sdFrameMark(c,ox,topY,'left'));
+  s+=sdFrameMark(c,ox,topY,'left');
   s+=sdFrameMark(c,ox+sw,topY,'right');
   const tcU=(ldU.bmm||[]).slice(1,-1).map(v=>ox+v*scale);
   tcU.forEach(tc=>{ s+=sdTMark(c,tc,topY); });
-  prU.forEach(pp=>{
-    if(pp.type==='R') s+=sdTiltBar(c,pp.x1-6,topY,pp.x0+6,topY+depth);
-    else s+=sdTiltBar(c,pp.x0+6,topY,pp.x1-6,topY+depth);
-  });
+  // 各段門片類型（以 T 分段，同段內連續相同字母才會相連成 V）
+  const segTypesU=[]; { let tmp=[]; for(const ch of cfgCleanU){ if(ch==='T'){segTypesU.push(tmp);tmp=[];} else tmp.push(ch);} segTypesU.push(tmp); }
+  for(let seg=0; seg<ldU.segs.length; seg++){
+    let leftMM=ldU.bmm[seg], rightMM=ldU.bmm[seg+1];
+    if(seg>0) leftMM+=SD_TPOST/2;
+    if(seg<ldU.segs.length-1) rightMM-=SD_TPOST/2;
+    const cnt=ldU.segs[seg];
+    if(cnt<=0) continue;
+    const panelW=((rightMM-leftMM)/cnt)*scale;
+    const baseX=ox+leftMM*scale;
+    const types=segTypesU[seg]||[];
+    // 連續相同字母 → 交替方向（L 起始 right-down；R 起始 left-down），相鄰把手相連成 V
+    const dirs=new Array(cnt).fill('R');
+    let i=0;
+    while(i<cnt){
+      let j=i; while(j+1<cnt && types[j+1]===types[i]) j++;
+      const base=(types[i]==='R')?'L':'R';
+      for(let k=i;k<=j;k++){ dirs[k]=((k-i)%2===0)?base:(base==='R'?'L':'R'); }
+      i=j+1;
+    }
+    for(let k=0;k<cnt;k++){
+      const x0=baseX+k*panelW, x1=x0+panelW;
+      if(dirs[k]==='R') s+=sdTiltBar(c,x0,topY,x1,topY+depth); // 鉸鏈左上→把手右下
+      else s+=sdTiltBar(c,x1,topY,x0,topY+depth);              // 鉸鏈右上→把手左下
+    }
+  }
 
   s+=`</svg>`;
   return s;
