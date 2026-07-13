@@ -296,7 +296,7 @@ h2{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px;padding-botto
     </div>
     <div class="form-row r2" id="h-dhung-loc-row" style="display:none">
       <div class="field" style="grid-column:1 / -1">
-        <label>水平T位置 Double Hung Location</label>
+        <label>雙層分段位置 Double Hung Location</label>
         <div style="display:flex;align-items:center;gap:28px;flex-wrap:wrap;padding-top:6px">
           <label style="display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:400;color:#333;cursor:pointer">
             <input type="radio" name="h-dhloc" value="在中心At Centre" onchange="toggleHDhloc()" style="width:auto">在中心At Centre</label>
@@ -1256,7 +1256,7 @@ function fillForm(type,d){
   // 載入圖片
   document.getElementById(`${prefix}-img-list`).innerHTML='';
   if(d.images&&d.images.length) loadImages(prefix, d.images);
-  // 回填水平T位置 radio（radio 以 name 分組、非 id 對應，通用迴圈抓不到，需手動勾選；且須在 toggle 之前，以免自定義值被清空）
+  // 回填雙層分段位置 radio（radio 以 name 分組、非 id 對應，通用迴圈抓不到，需手動勾選；且須在 toggle 之前，以免自定義值被清空）
   if(type==='hinge'){
     document.querySelectorAll('input[name="h-dhloc"]').forEach(r=>{ r.checked=(r.value===(d.dhloc||'')); });
   }
@@ -1290,7 +1290,7 @@ function toggleHDhung(){
   if(isNO){
     const sr=document.getElementById('h-htbar-size-row');
     if(sr) sr.style.display='none';
-    // 清除水平T位置 radio 選擇與自定義值
+    // 清除雙層分段位置 radio 選擇與自定義值
     document.querySelectorAll('input[name="h-dhloc"]').forEach(r=>r.checked=false);
     const cust=document.getElementById('h-dhloc-custom');
     if(cust){ cust.value=''; cust.disabled=true; }
@@ -1503,14 +1503,14 @@ function saveItem(type){
   if(type==='hinge'){
     if(tcbHasEmpty('h-main')) errors.push('上部 T型立柱/角柱/海灣角柱位置（含度數）尚有空格未填');
     if(tcbHasEmpty('h-lower')) errors.push('下部 T型立柱/角柱/海灣角柱位置（含度數）尚有空格未填');
-    // 雙層氣窗開啟時，水平T位置必選；選自定義時必填數值
+    // 雙層氣窗開啟時，雙層分段位置必選；選自定義時必填數值
     const dhung=getV('dhung');
     if(dhung && dhung!=='NO'){
       const dl=getHDhloc();
       if(!dl){
-        errors.push('水平T位置 Double Hung Location（請選擇「在中心」或「自定義」）');
+        errors.push('雙層分段位置 Double Hung Location（請選擇「在中心」或「自定義」）');
       } else if(dl==='自定義Custom' && !getV('dhloc-custom')){
-        errors.push('水平T自定義位置（請輸入數值 mm）');
+        errors.push('雙層分段自定義位置（請輸入數值 mm）');
       }
     }
   }
@@ -2048,7 +2048,7 @@ function goReport(){
         const dhlocVal=it['dhloc-custom']?`1st:${it['dhloc-custom']}mm`:(it.dhloc==='在中心At Centre'?'在中心':'');
         const dhungLabel=it.dhung.includes('不同')?'雙層結構不同':it.dhung.includes('相同')?'雙層結構相同':'雙層氣窗';
         lines.push(`雙層氣窗：${dhungLabel}`);
-        if(dhlocVal) lines.push(`水平T位置：${dhlocVal}`);
+        if(dhlocVal) lines.push(`雙層分段位置：${dhlocVal}`);
         if(it.htbar&&it.htbar.includes('Required')) lines.push(`水平T尺寸：${(it['htbar-size']||'').split(' ')[0]}`);
         if(it.dhung.includes('不同')&&it['panel-lower']){
           lines.push(`氣窗下部結構：${it['panel-lower']}`);
