@@ -326,10 +326,9 @@ h2{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px;padding-botto
         <label>PANEL 結構 Panel Configuration</label>
         <div style="display:flex;gap:6px;align-items:center">
           <select id="h-panel" onchange="hPanelCalc()" style="width:100px;flex-shrink:0">
-            <option value="">Other ▾</option>
+            <option value="">Other</option>
             <option>L</option><option>R</option><option>L-DR</option><option>LL</option><option>RR</option>
-            <option>LRR</option><option>LLR</option><option>LLRR</option><option>LTLRTR</option>
-            <option>Other</option></select>
+            <option>LRR</option><option>LLR</option><option>LLRR</option><option>LTLRTR</option></select>
           <input type="text" id="h-panel-custom" placeholder="例：LRTLRCLR" oninput="hPanelCalc()" style="flex:1">
         </div>
         <div class="hint-note">T:T-Post　C:Corner Post(90°)　B:Bay Post　D:擋光豎柱　G:單扇不等寬</div>
@@ -625,10 +624,10 @@ h2{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px;padding-botto
     <div class="form-row r3">
       <div class="field"><label>PANEL 結構（下拉）</label>
         <select id="t-panel" onchange="tPanelCalc()">
-          <option value="">-- 選擇 --</option>
+          <option value="">Other</option>
           <option>FF/FF</option><option>BFFB</option><option>BF</option>
-          <option>FF/FF/FF</option><option>BFF</option><option>FFB</option><option>Other</option></select></div>
-      <div class="field"><label>自定義 Panel 結構</label>
+          <option>FF/FF/FF</option><option>BFF</option><option>FFB</option></select></div>
+      <div class="field" id="t-panel-custom-col"><label>自定義 Panel 結構</label>
         <input type="text" id="t-panel-custom" placeholder="例：FF/FF/FF" oninput="tPanelCalc()">
       </div>
       <div class="field"><label>Panel 數量（自動計算）</label>
@@ -665,7 +664,7 @@ h2{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px;padding-botto
           <option>M Track</option><option>U Track</option>
           <option>提供下滑軌-下滑軌M型(白色)</option>
           <option>提供下滑軌-下滑軌M型(鋁色)</option>
-          <option>提供下滑軌-下滑軌U型(有翅膀)鋁色</option>
+          <option>提供下滑軌-下滑軌U型</option>
           <option>提供ㄇ型下滑槽.使用定位器</option>
           <option>下方無軌道只要固定轉軸座即可</option></select></div>
       <div class="field"><label>下滑軌鑲螺釘孔</label>
@@ -673,9 +672,9 @@ h2{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px;padding-botto
     </div>
     <div class="form-row r2">
       <div class="field"><label>上滑軌顏色 Top Track Color</label>
-        <input type="text" id="t-top-color" placeholder="例：Bright White"></div>
-      <div class="field"><label>下滑軌顏色 Bottom Track Color</label>
-        <input type="text" id="t-bot-color" placeholder="例：Metallic Gray"></div>
+        <select id="t-top-color"><option>無</option><option>銀色</option></select></div>
+      <div class="field"><label>U型下滑軌顏色 U-Track Bottom Track Color</label>
+        <select id="t-bot-color"><option>白色</option><option>銀色</option><option>黑色</option></select></div>
     </div>
 
     <div class="section-divider">拉手 & 特殊選項</div>
@@ -1237,10 +1236,12 @@ function clearForm(type){
     document.getElementById('h-timber-list').innerHTML='';
     document.getElementById('h-img-list').innerHTML='';
     timberCounters.h=0;
+    try{ hPanelCalc(); }catch(e){}
   } else {
     document.getElementById('t-timber-list').innerHTML='';
     document.getElementById('t-img-list').innerHTML='';
     timberCounters.t=0;
+    try{ tPanelCalc(); }catch(e){}
   }
 }
 
@@ -1270,6 +1271,7 @@ function fillForm(type,d){
     try{ hPanelCalc(); }catch(e){}
   } else {
     try{ toggleTMid(); }catch(e){}
+    try{ tPanelCalc(); }catch(e){}
   }
 }
 
@@ -1355,6 +1357,10 @@ function hPanelCalc(){
     const sel=document.getElementById('h-panel');
     const customEl=document.getElementById('h-panel-custom');
     if(!sel||!customEl) return;
+    // 只有選 Other（value 為空）才顯示自定義輸入欄；選具體結構時隱藏並清空
+    const isOther=sel.value==='';
+    customEl.style.display=isOther?'':'none';
+    if(!isOther&&customEl.value) customEl.value='';
     const src=(customEl.value||sel.value||'').toUpperCase();
     const upperLR=(src.match(/[LR]/g)||[]).length;
     const dhungEl=document.getElementById('h-dhung');
@@ -1394,6 +1400,11 @@ function tPanelCalc(){
     const sel=document.getElementById('t-panel');
     const customEl=document.getElementById('t-panel-custom');
     if(!sel||!customEl) return;
+    // 只有選 Other（value 為空）才顯示自定義結構欄；選具體結構時隱藏並清空
+    const isOther=sel.value==='';
+    const col=document.getElementById('t-panel-custom-col');
+    if(col) col.style.display=isOther?'':'none';
+    if(!isOther&&customEl.value) customEl.value='';
     const src=(customEl.value||sel.value||'').toUpperCase();
     const fbCount=(src.match(/[FB]/g)||[]).length;
     const qtyEl=document.getElementById('t-panel-qty');
@@ -2094,8 +2105,8 @@ function goReport(){
         if(it['header-len']&&+it['header-len']>0) boxStr+=`　頂板長度：${it['header-len']}mm`;
         lines.push(boxStr);
       }
-      if(it['top-track']&&+it['top-track']>0) lines.push(`上滑軌長度：${it['top-track']}mm`);
-      if(it['bot-track']&&+it['bot-track']>0) lines.push(`下滑軌長度：${it['bot-track']}mm`);
+      if(it['top-track']&&+it['top-track']>0) lines.push(`<span style="color:#1155cc">上滑軌長度：${it['top-track']}mm</span>`);
+      if(it['bot-track']&&+it['bot-track']>0) lines.push(`<span style="color:#1155cc">下滑軌長度：${it['bot-track']}mm</span>`);
       if(it['split-rod']&&it['split-rod']!=='None'){
         let rodVal;
         if(it['split-rod']==='自定義'){
@@ -2107,8 +2118,18 @@ function goReport(){
         lines.push(`拉桿分段位置：${rodVal}`);
       }
       if(it.stile) lines.push(`豎柱：${it.stile}`);
-      if(it['bot-track-type']) lines.push(`滑軌：${it['bot-track-type']}`);
-      if(it['top-color']||it['bot-color']) lines.push(`軌道顏色 上：${it['top-color']||'—'} 下：${it['bot-color']||'—'}`);
+      if(it['bot-track-type']){
+        // 下滑軌類型選「下滑軌U型」時藍字，其他選項黑字
+        const uType=(it['bot-track-type']||'').includes('下滑軌U型');
+        lines.push(`<span style="color:${uType?'#1155cc':'#000'}">滑軌：${it['bot-track-type']}</span>`);
+      }
+      // 軌道顏色：上滑軌顏色選「無」不顯示；兩者皆藍字
+      if(it['top-color']&&it['top-color']!=='無'&&it['top-color']!==''){
+        lines.push(`<span style="color:#1155cc">上滑軌顏色：${it['top-color']}</span>`);
+      }
+      if(it['bot-color']){
+        lines.push(`<span style="color:#1155cc">U型下滑軌顏色：${it['bot-color']}</span>`);
+      }
       if(it['fascia-l']==='YES') lines.push(`側頂飾板左：YES`);
       if(it['fascia-r']==='YES') lines.push(`側頂飾板右：YES`);
       if(it['bot-drill']==='YES') lines.push(`下滑軌鑲螺釘孔：YES`);
