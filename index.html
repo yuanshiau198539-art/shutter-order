@@ -295,15 +295,17 @@ h2{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px;padding-botto
           <option>Yes(雙層結構不同different panel config)</option></select></div>
     </div>
     <div class="form-row r2" id="h-dhung-loc-row" style="display:none">
-      <div class="field"><label>水平T位置 Double Hung Location</label>
-        <select id="h-dhloc" onchange="toggleHDhloc()">
-          <option value="">-- 無 --</option>
-          <option>在中心At Centre</option>
-          <option>自定義Custom</option></select></div>
-    </div>
-    <div id="h-dhloc-custom-row" style="display:none" class="form-row r2">
-      <div class="field"><label>水平T自定義位置 (mm)</label>
-        <input type="number" id="h-dhloc-custom" placeholder="例：1200"></div>
+      <div class="field" style="grid-column:1 / -1">
+        <label>水平T位置 Double Hung Location</label>
+        <div style="display:flex;align-items:center;gap:28px;flex-wrap:wrap;padding-top:6px">
+          <label style="display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:400;color:#333;cursor:pointer">
+            <input type="radio" name="h-dhloc" value="在中心At Centre" onchange="toggleHDhloc()" style="width:auto">在中心At Centre</label>
+          <label style="display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:400;color:#333;cursor:pointer">
+            <input type="radio" name="h-dhloc" value="自定義Custom" onchange="toggleHDhloc()" style="width:auto">自定義Custom
+            <input type="number" id="h-dhloc-custom" placeholder="" style="width:120px" disabled>
+            <span style="color:#333">(mm)</span></label>
+        </div>
+      </div>
     </div>
     <div class="form-row r2" id="h-htbar-row-wrap" style="display:none">
       <div class="field"><label>水平T設定 Horizontal T-Post</label>
@@ -1254,6 +1256,10 @@ function fillForm(type,d){
   // 載入圖片
   document.getElementById(`${prefix}-img-list`).innerHTML='';
   if(d.images&&d.images.length) loadImages(prefix, d.images);
+  // 回填水平T位置 radio（radio 以 name 分組、非 id 對應，通用迴圈抓不到，需手動勾選；且須在 toggle 之前，以免自定義值被清空）
+  if(type==='hinge'){
+    document.querySelectorAll('input[name="h-dhloc"]').forEach(r=>{ r.checked=(r.value===(d.dhloc||'')); });
+  }
   // 填完值後，重新觸發條件欄位的顯示邏輯，讓隱藏的輸入框（中板自定義、雙層位置、水平T、分段拉桿等）帶著存好的數值重新出現
   if(type==='hinge'){
     try{ toggleHSplitRod(); }catch(e){}
@@ -1282,10 +1288,12 @@ function toggleHDhung(){
   if(locRow) locRow.style.display=isNO?'none':'grid';
   if(htbarRow) htbarRow.style.display=isNO?'none':'grid';
   if(isNO){
-    const cr=document.getElementById('h-dhloc-custom-row');
     const sr=document.getElementById('h-htbar-size-row');
-    if(cr) cr.style.display='none';
     if(sr) sr.style.display='none';
+    // 清除水平T位置 radio 選擇與自定義值
+    document.querySelectorAll('input[name="h-dhloc"]').forEach(r=>r.checked=false);
+    const cust=document.getElementById('h-dhloc-custom');
+    if(cust){ cust.value=''; cust.disabled=true; }
   }
   const showLower=v.includes('不同');
   const lowerCol=document.getElementById('h-panel-lower-col');
@@ -1308,10 +1316,15 @@ function toggleHMid(){
   const m2=document.getElementById('h-mid2-col'); if(m2) m2.style.display=show?'flex':'none';
 }
 function toggleHMidRail(){ toggleHMid(); }
+function getHDhloc(){
+  const r=document.querySelector('input[name="h-dhloc"]:checked');
+  return r?r.value:'';
+}
 function toggleHDhloc(){
-  const el=document.getElementById('h-dhloc'); if(!el) return;
-  const row=document.getElementById('h-dhloc-custom-row');
-  if(row) row.style.display=el.value==='自定義Custom'?'grid':'none';
+  const cust=document.getElementById('h-dhloc-custom'); if(!cust) return;
+  const isCustom=getHDhloc()==='自定義Custom';
+  cust.disabled=!isCustom;
+  if(!isCustom) cust.value='';
 }
 function toggleTBoxout(){
   const el=document.getElementById('t-boxout'); if(!el) return;
@@ -1490,6 +1503,16 @@ function saveItem(type){
   if(type==='hinge'){
     if(tcbHasEmpty('h-main')) errors.push('上部 T型立柱/角柱/海灣角柱位置（含度數）尚有空格未填');
     if(tcbHasEmpty('h-lower')) errors.push('下部 T型立柱/角柱/海灣角柱位置（含度數）尚有空格未填');
+    // 雙層氣窗開啟時，水平T位置必選；選自定義時必填數值
+    const dhung=getV('dhung');
+    if(dhung && dhung!=='NO'){
+      const dl=getHDhloc();
+      if(!dl){
+        errors.push('水平T位置 Double Hung Location（請選擇「在中心」或「自定義」）');
+      } else if(dl==='自定義Custom' && !getV('dhloc-custom')){
+        errors.push('水平T自定義位置（請輸入數值 mm）');
+      }
+    }
   }
 
   if(errors.length){
@@ -1530,7 +1553,7 @@ function doSaveItem(type){
       'main-tcb': collectTCBPositions('h-main'),
       frame:getV('frame'),buildout:getV('buildout'),
       fl:getV('fl'),fr:getV('fr'),ft:getV('ft'),fb:getV('fb'),
-      dhung:getV('dhung'),dhloc:getV('dhloc'),'dhloc-custom':getV('dhloc-custom'),
+      dhung:getV('dhung'),dhloc:getHDhloc(),'dhloc-custom':getV('dhloc-custom'),
       'panel-lower':getV('panel-lower'),
       'lower-tcb': collectTCBPositions('h-lower'),
       htbar:getV('htbar'),'htbar-size':getV('htbar-size'),
@@ -1870,7 +1893,7 @@ function viewShutterDiagram(){
     'panel-lower':gv('panel-lower'),
     'main-tcb':collectTCBPositions('h-main'),
     'lower-tcb':collectTCBPositions('h-lower'),
-    dhung:gv('dhung'), dhloc:gv('dhloc'), 'dhloc-custom':gv('dhloc-custom'),
+    dhung:gv('dhung'), dhloc:getHDhloc(), 'dhloc-custom':gv('dhloc-custom'),
     htbar:gv('htbar'),
     mid1:gv('mid1'), mid2:gv('mid2'), midtype:gv('midtype')
   };
