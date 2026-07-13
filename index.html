@@ -156,6 +156,13 @@ h2{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px;padding-botto
   </div>
   <div class="card">
     <h2>📋 歷史訂單</h2>
+    <div id="order-filter-bar" style="display:none;gap:10px;flex-wrap:wrap;align-items:center;margin:4px 0 14px">
+      <select id="order-filter-ym" onchange="renderOrderList()" style="padding:8px 10px;border:1.5px solid #ddd;border-radius:7px;font-size:13px;font-family:inherit;min-width:150px;background:#fff">
+        <option value="">全部年月</option>
+      </select>
+      <input id="order-filter-kw" type="text" placeholder="🔍 搜尋訂單號或客戶名稱…" oninput="renderOrderList()" style="flex:1;min-width:200px;padding:8px 10px;border:1.5px solid #ddd;border-radius:7px;font-size:13px;font-family:inherit">
+      <button onclick="clearOrderFilter()" style="padding:8px 14px;border:1.5px solid #ddd;border-radius:7px;background:#fff;font-size:13px;cursor:pointer;font-family:inherit">清除篩選</button>
+    </div>
     <div id="order-list-wrap">
       <div class="empty-orders"><div class="icon">📭</div><div>尚無任何訂單<br><span style="font-size:12px">點擊「建立新訂單」開始</span></div></div>
     </div>
@@ -1014,6 +1021,22 @@ if(FIREBASE_READY){
 function renderOrderList(){
   loadAllOrders();
   const wrap = document.getElementById('order-list-wrap');
+  // 由訂單號取出年月（YYMM）：格式 HT-YYMM-NN 或 HTYYMMNN 皆可
+  function ymOf(ord){
+    const m=(ord.no||'').match(/(\d{2})(\d{2})/);
+    return m? m[1]+m[2] : '';
+  }
+  // 篩選列：有訂單才顯示
+  const bar=document.getElementById('order-filter-bar');
+  if(bar) bar.style.display = allOrders.length ? 'flex' : 'none';
+  // 年月下拉：蒐集所有年月，保留目前選取值後重建選項
+  const ymSel=document.getElementById('order-filter-ym');
+  if(ymSel){
+    const cur=ymSel.value;
+    const yms=[...new Set(allOrders.map(ymOf).filter(Boolean))].sort((a,b)=>b.localeCompare(a));
+    ymSel.innerHTML=`<option value="">全部年月</option>`+yms.map(ym=>`<option value="${ym}">20${ym.slice(0,2)}年${ym.slice(2)}月</option>`).join('');
+    ymSel.value = yms.includes(cur) ? cur : '';
+  }
   if(!allOrders.length){
     wrap.innerHTML=`<div class="empty-orders"><div class="icon">📭</div><div>尚無任何訂單<br><span style="font-size:12px">點擊「建立新訂單」開始</span></div></div>`;
     return;
@@ -1028,7 +1051,22 @@ function renderOrderList(){
     return d?parseInt(d.slice(2))||0:0;
   }
   const sorted = [...allOrders].sort((a,b)=>orderKey(b)-orderKey(a));
-  wrap.innerHTML = sorted.map(ord=>{
+  // 套用年月 + 關鍵字篩選（兩者皆須符合）
+  const fYM = ymSel ? ymSel.value : '';
+  const fKw = ((document.getElementById('order-filter-kw')||{}).value||'').trim().toLowerCase();
+  const filtered = sorted.filter(ord=>{
+    if(fYM && ymOf(ord)!==fYM) return false;
+    if(fKw){
+      const hay=((ord.no||'')+' '+(ord.client||'')).toLowerCase();
+      if(!hay.includes(fKw)) return false;
+    }
+    return true;
+  });
+  if(!filtered.length){
+    wrap.innerHTML=`<div class="empty-orders"><div class="icon">🔍</div><div>查無符合條件的訂單<br><span style="font-size:12px">請調整年月或搜尋關鍵字</span></div></div>`;
+    return;
+  }
+  wrap.innerHTML = filtered.map(ord=>{
     const itemCount = (ord.items||[]).length;
     const types = [...new Set((ord.items||[]).map(it=>it.type))];
     const typeLabel = types.map(t=>t==='hinge'?
@@ -1047,6 +1085,13 @@ function renderOrderList(){
       </div>
     </div>`;
   }).join('');
+}
+
+// 清除歷史訂單的年月/關鍵字篩選
+function clearOrderFilter(){
+  const y=document.getElementById('order-filter-ym'); if(y) y.value='';
+  const k=document.getElementById('order-filter-kw'); if(k) k.value='';
+  renderOrderList();
 }
 
 function newOrder(){
