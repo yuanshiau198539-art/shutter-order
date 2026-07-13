@@ -234,12 +234,12 @@ h2{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px;padding-botto
       <div class="field"><label>PROGRAM</label>
         <select id="h-program"><option>Classic</option><option>Premium</option></select></div>
       <div class="field"><label>房間號 ROOM</label>
-        <select id="h-room"><option value="">-- 選擇 --</option>
+        <select id="h-room" onchange="toggleRoom('h')"><option value="">Other</option>
           <option>客廳</option><option>主臥室</option><option>臥室</option><option>餐廳</option>
           <option>廚房</option><option>書房</option><option>浴室</option><option>小孩房</option>
           <option>孝親房</option><option>辦公室</option><option>衛生間</option><option>閣樓</option>
-          <option>樓梯</option><option>Other</option></select></div>
-      <div class="field"><label>自訂房間名稱</label>
+          <option>樓梯</option></select></div>
+      <div class="field" id="h-room-custom-col"><label>自訂房間名稱</label>
         <input type="text" id="h-room-custom" placeholder="例：3F主臥右門"></div>
     </div>
     <div class="form-row r3">
@@ -508,12 +508,12 @@ h2{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px;padding-botto
       <div class="field"><label>PROGRAM</label>
         <select id="t-program"><option>Classic</option><option>Premium</option></select></div>
       <div class="field"><label>房間號 ROOM</label>
-        <select id="t-room"><option value="">-- 選擇 --</option>
+        <select id="t-room" onchange="toggleRoom('t')"><option value="">Other</option>
           <option>客廳</option><option>主臥室</option><option>臥室</option><option>餐廳</option>
           <option>廚房</option><option>書房</option><option>浴室</option><option>小孩房</option>
           <option>孝親房</option><option>辦公室</option><option>衛生間</option><option>閣樓</option>
-          <option>樓梯</option><option>Other</option></select></div>
-      <div class="field"><label>自訂房間名稱</label>
+          <option>樓梯</option></select></div>
+      <div class="field" id="t-room-custom-col"><label>自訂房間名稱</label>
         <input type="text" id="t-room-custom" placeholder="例：客廳"></div>
     </div>
     <div class="form-row r3">
@@ -1282,11 +1282,13 @@ function clearForm(type){
     document.getElementById('h-img-list').innerHTML='';
     timberCounters.h=0;
     try{ hPanelCalc(); }catch(e){}
+    try{ toggleRoom('h'); }catch(e){}
   } else {
     document.getElementById('t-timber-list').innerHTML='';
     document.getElementById('t-img-list').innerHTML='';
     timberCounters.t=0;
     try{ tPanelCalc(); }catch(e){}
+    try{ toggleRoom('t'); }catch(e){}
   }
 }
 
@@ -1314,9 +1316,11 @@ function fillForm(type,d){
     try{ toggleHDhloc(); }catch(e){}
     try{ toggleHMid(); }catch(e){}
     try{ hPanelCalc(); }catch(e){}
+    try{ toggleRoom('h'); }catch(e){}
   } else {
     try{ toggleTMid(); }catch(e){}
     try{ tPanelCalc(); }catch(e){}
+    try{ toggleRoom('t'); }catch(e){}
   }
 }
 
@@ -1394,6 +1398,16 @@ function toggleTFloating(){
   const hingeRow=document.getElementById('t-hinge-color-row');
   if(floatRow) floatRow.style.display=isSliding?'none':'flex';
   if(hingeRow) hingeRow.style.display=isSliding?'none':'flex';
+}
+
+// 房間號選 Other（value 為空）才顯示「自訂房間名稱」欄；選具體房間則隱藏並清空
+function toggleRoom(pfx){
+  const sel=document.getElementById(pfx+'-room'); if(!sel) return;
+  const col=document.getElementById(pfx+'-room-custom-col');
+  const cust=document.getElementById(pfx+'-room-custom');
+  const isOther=sel.value==='';
+  if(col) col.style.display=isOther?'':'none';
+  if(!isOther&&cust) cust.value='';
 }
 
 // Panel 自動計算（框形：計算L+R字母數）
