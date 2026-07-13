@@ -1510,6 +1510,11 @@ function saveItem(type){
   const panelValid=(panelSel && panelSel!=='Other') || hasLetters(panelCustom);
   if(!panelValid) errors.push('PANEL 結構（請選擇結構，或在自訂欄輸入英文字母）');
 
+  // 中板位置選「自定義Custom」時，中板 1st 必填；中板 2nd 選填，不影響儲存（框形與軌道通用）
+  if(getV('midtype')==='自定義Custom' && !getV('mid1')){
+    errors.push('中板 1st（中板位置選「自定義」時，須先填中板 1st 的數值 mm）');
+  }
+
   // 框形：T型立柱/角柱/海灣角柱位置（含度數）若有出現則必填
   if(type==='hinge'){
     if(tcbHasEmpty('h-main')) errors.push('上部 T型立柱/角柱/海灣角柱位置（含度數）尚有空格未填');
