@@ -673,7 +673,7 @@ h2{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px;padding-botto
           <option>提供上下滑軌Supply Top&amp;Bottom Track</option>
           <option>只提供上滑軌</option><option>只提供下滑軌</option><option>不提供滑軌</option></select></div>
       <div class="field"><label>下滑軌類型 Bottom Track Option</label>
-        <select id="t-bot-track-type">
+        <select id="t-bot-track-type" onchange="toggleUTrackColor()">
           <option value="">-- 無 --</option>
           <option>M Track</option><option>U Track</option>
           <option>提供下滑軌-下滑軌M型(白色)</option>
@@ -685,9 +685,9 @@ h2{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px;padding-botto
         <select id="t-bot-drill"><option>NO</option><option>YES</option></select></div>
     </div>
     <div class="form-row r2">
-      <div class="field"><label>上滑軌顏色 Top Track Color</label>
+      <div class="field" id="t-top-color-col" style="display:none"><label>上滑軌顏色 Top Track Color</label>
         <select id="t-top-color"><option>無</option><option>銀色</option></select></div>
-      <div class="field"><label>U型下滑軌顏色 U-Track Bottom Track Color</label>
+      <div class="field" id="t-bot-color-col" style="display:none"><label>U型下滑軌顏色 U-Track Bottom Track Color</label>
         <select id="t-bot-color"><option>白色</option><option>銀色</option><option>黑色</option></select></div>
     </div>
 
@@ -1492,6 +1492,7 @@ function clearForm(type){
     timberCounters.t=0;
     try{ tPanelCalc(); }catch(e){}
     try{ toggleRoom('t'); }catch(e){}
+    try{ toggleUTrackColor(); }catch(e){}
   }
 }
 
@@ -1524,6 +1525,7 @@ function fillForm(type,d){
     try{ toggleTMid(); }catch(e){}
     try{ tPanelCalc(); }catch(e){}
     try{ toggleRoom('t'); }catch(e){}
+    try{ toggleUTrackColor(); }catch(e){}
   }
 }
 
@@ -1657,6 +1659,15 @@ function hLowerCalc(){
 }
 
 // Panel 自動計算（軌道：計算F+B字母數）
+// 下滑軌類型選「下滑軌U型」時才顯示 U型下滑軌顏色欄，其他選項隱藏
+function toggleUTrackColor(){
+  const sel=document.getElementById('t-bot-track-type');
+  const col=document.getElementById('t-bot-color-col');
+  if(!sel||!col) return;
+  const isU=(sel.value||'').includes('下滑軌U型');
+  col.style.display=isU?'':'none';
+}
+
 function tPanelCalc(){
   try{
     const sel=document.getElementById('t-panel');
@@ -2394,11 +2405,9 @@ function goReport(){
         const uType=(it['bot-track-type']||'').includes('下滑軌U型');
         lines.push(`<span style="color:${uType?'#1155cc':'#000'}">滑軌：${it['bot-track-type']}</span>`);
       }
-      // 軌道顏色：上滑軌顏色選「無」不顯示；兩者皆藍字
-      if(it['top-color']&&it['top-color']!=='無'&&it['top-color']!==''){
-        lines.push(`<span style="color:#1155cc">上滑軌顏色：${it['top-color']}</span>`);
-      }
-      if(it['bot-color']){
+      // 上滑軌顏色欄位已停用，報表不顯示
+      // U型下滑軌顏色：僅當下滑軌類型為「下滑軌U型」時顯示
+      if(it['bot-color'] && (it['bot-track-type']||'').includes('下滑軌U型')){
         lines.push(`<span style="color:#1155cc">U型下滑軌顏色：${it['bot-color']}</span>`);
       }
       if(it['fascia-l']==='YES') lines.push(`側頂飾板左：YES`);
