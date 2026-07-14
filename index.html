@@ -1018,6 +1018,23 @@ if(FIREBASE_READY){
   });
 }
 
+// 下單業務標籤（僅管理員可見）：顯示 email @ 前名稱，依 email 雜湊固定配色
+const SALES_COLORS=[
+  {bg:'#E6F1FB',fg:'#0C447C'}, {bg:'#EEEDFE',fg:'#3C3489'},
+  {bg:'#EAF3DE',fg:'#27500A'}, {bg:'#FAEEDA',fg:'#633806'},
+  {bg:'#FBEAF0',fg:'#72243E'}, {bg:'#E1F5EE',fg:'#085041'},
+  {bg:'#FAECE7',fg:'#712B13'}
+];
+function salespersonBadge(ord){
+  if(!isAdminUser()) return '';                 // 只有管理員看得到
+  const email=(ord.ownerEmail||'').trim();
+  if(!email) return '';                          // 舊訂單沒存 email 就不顯示
+  const name=email.split('@')[0];
+  let h=0; for(let i=0;i<email.length;i++) h=(h*31+email.charCodeAt(i))>>>0;
+  const c=SALES_COLORS[h%SALES_COLORS.length];
+  return `<span style="display:inline-flex;align-items:center;gap:3px;background:${c.bg};color:${c.fg};font-size:12px;font-weight:600;padding:2px 9px;border-radius:20px;margin-left:8px;vertical-align:middle;white-space:nowrap">👤 ${name}</span>`;
+}
+
 function renderOrderList(){
   loadAllOrders();
   const wrap = document.getElementById('order-list-wrap');
@@ -1075,7 +1092,7 @@ function renderOrderList(){
     const dateStr = ord.updatedAt ? new Date(ord.updatedAt).toLocaleString('zh-TW',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
     return `<div class="order-list-item">
       <div class="order-meta">
-        <div class="order-title">${ord.no?ord.no+' ／ ':''}${ord.client||'（未填客戶名稱）'}</div>
+        <div class="order-title">${ord.no?ord.no+' ／ ':''}${ord.client||'（未填客戶名稱）'}${salespersonBadge(ord)}</div>
         <div class="order-sub">📅 ${ord.date||'—'} &nbsp;｜&nbsp; 最後修改 ${dateStr} &nbsp;｜&nbsp; ${itemCount} 筆品項 &nbsp; ${typeLabel}</div>
       </div>
       <div class="order-actions">
