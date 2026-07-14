@@ -157,7 +157,11 @@ h2{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px;padding-botto
   <div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px">
       <h2 id="order-list-title" style="margin:0">📋 歷史訂單</h2>
-      <button id="trash-toggle" onclick="toggleTrashView()" style="display:none;align-items:center;gap:5px;padding:7px 14px;border:1.5px solid #ddd;border-radius:7px;background:#fff;font-size:13px;cursor:pointer;font-family:inherit;color:#555">🗑 已刪除訂單 (0)</button>
+      <button id="trash-toggle" onclick="toggleTrashView()" style="display:none;align-items:center;gap:5px;padding:7px 14px;border:1.5px solid #ddd;border-radius:7px;background:#fff;font-size:13px;cursor:pointer;font-family:inherit;color:#555">🗑 已刪除 (0)</button>
+    </div>
+    <div style="display:flex;gap:8px;margin:2px 0 12px;flex-wrap:wrap">
+      <button id="tab-formal" onclick="switchOrderView('formal')" style="padding:7px 16px;border:1.5px solid #2c3e50;border-radius:7px;background:#2c3e50;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">📋 歷史訂單</button>
+      <button id="tab-draft" onclick="switchOrderView('draft')" style="padding:7px 16px;border:1.5px solid #ddd;border-radius:7px;background:#fff;color:#555;font-size:13px;cursor:pointer;font-family:inherit">📝 草稿</button>
     </div>
     <div id="order-filter-bar" style="display:none;gap:10px;flex-wrap:wrap;align-items:center;margin:4px 0 14px">
       <select id="order-filter-ym" onchange="renderOrderList()" style="padding:8px 10px;border:1.5px solid #ddd;border-radius:7px;font-size:13px;font-family:inherit;min-width:150px;background:#fff">
@@ -187,7 +191,7 @@ h2{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px;padding-botto
     <h2>📋 訂單基本資料</h2>
     <div class="form-row r2">
       <div class="field"><label>訂購日期</label><input type="date" id="s1-date"></div>
-      <div class="field"><label>訂單號碼</label><input type="text" id="s1-no" placeholder="例：HT-2601-01"></div>
+      <div class="field"><label>訂單號碼（草稿可留空，轉正式時自動給號）</label><input type="text" id="s1-no" placeholder="草稿可留空"></div>
     </div>
     <div class="form-row r2">
       <div class="field"><label>客戶名稱</label><input type="text" id="s1-client" placeholder="客戶名稱"></div>
@@ -1044,25 +1048,34 @@ function renderOrderList(){
   loadAllOrders();
   const wrap = document.getElementById('order-list-wrap');
   const admin = isAdminUser();
-  if(!admin) orderTrashMode=false;              // 非管理員不可進入已刪除資料夾
-  const trash = orderTrashMode;
-  // 由訂單號取出年月（YYMM）：格式 HT-YYMM-NN 或 HTYYMMNN 皆可
+  if(!admin && orderView==='trash') orderView='formal';       // 非管理員不可進入已刪除
+  const view = orderView;                                       // 'formal' | 'draft' | 'trash'
   function ymOf(ord){
     const m=(ord.no||'').match(/(\d{2})(\d{2})/);
     return m? m[1]+m[2] : '';
   }
-  // 基礎集合：正常模式＝未刪除；垃圾桶模式＝已刪除
-  const base = allOrders.filter(o=> trash ? o.deleted===true : o.deleted!==true);
-  // 標題切換
+  // 基礎集合：依檢視分流（草稿以 status==='draft' 判定；正式＝非草稿；皆排除已刪除，垃圾桶則只看已刪除）
+  const base = allOrders.filter(o=>{
+    if(view==='trash') return o.deleted===true;
+    if(o.deleted===true) return false;
+    return view==='draft' ? o.status==='draft' : o.status!=='draft';
+  });
+  // 分頁高亮 + 標題
+  const draftCount=allOrders.filter(o=>o.status==='draft'&&o.deleted!==true).length;
+  const tabF=document.getElementById('tab-formal'), tabD=document.getElementById('tab-draft');
+  function tabStyle(el,on){ if(!el) return; el.style.background=on?'#2c3e50':'#fff'; el.style.color=on?'#fff':'#555'; el.style.borderColor=on?'#2c3e50':'#ddd'; el.style.fontWeight=on?'600':'400'; }
+  tabStyle(tabF, view==='formal');
+  tabStyle(tabD, view==='draft');
+  if(tabD) tabD.textContent = draftCount ? `📝 草稿 (${draftCount})` : '📝 草稿';
   const titleEl=document.getElementById('order-list-title');
-  if(titleEl) titleEl.textContent = trash ? '🗑 已刪除訂單' : '📋 歷史訂單';
-  // 垃圾桶按鈕（僅管理員，顯示已刪除筆數）
+  if(titleEl) titleEl.textContent = view==='trash'?'🗑 已刪除訂單' : (view==='draft'?'📝 草稿':'📋 歷史訂單');
+  // 垃圾桶按鈕（僅管理員）
   const trashBtn=document.getElementById('trash-toggle');
   if(trashBtn){
     if(admin){
       const delCount=allOrders.filter(o=>o.deleted===true).length;
       trashBtn.style.display='inline-flex';
-      trashBtn.textContent = trash ? '← 返回歷史訂單' : `🗑 已刪除訂單 (${delCount})`;
+      trashBtn.textContent = view==='trash' ? '← 返回' : `🗑 已刪除 (${delCount})`;
     } else { trashBtn.style.display='none'; }
   }
   // 篩選列：基礎集合有訂單才顯示
@@ -1077,20 +1090,23 @@ function renderOrderList(){
     ymSel.value = yms.includes(cur) ? cur : '';
   }
   if(!base.length){
-    wrap.innerHTML = trash
-      ? `<div class="empty-orders"><div class="icon">🗑</div><div>已刪除資料夾是空的</div></div>`
-      : `<div class="empty-orders"><div class="icon">📭</div><div>尚無任何訂單<br><span style="font-size:12px">點擊「建立新訂單」開始</span></div></div>`;
+    const msg = view==='trash' ? '🗑|已刪除資料夾是空的'
+             : view==='draft' ? '📝|尚無草稿<br><span style="font-size:12px">新建立的訂單會先進草稿</span>'
+             : '📭|尚無正式訂單<br><span style="font-size:12px">草稿轉正式後會出現在這裡</span>';
+    const [ic,tx]=msg.split('|');
+    wrap.innerHTML=`<div class="empty-orders"><div class="icon">${ic}</div><div>${tx}</div></div>`;
     return;
   }
-  // 依訂單號碼排序（新到舊，最舊在最下）；編輯不影響位置
   function orderKey(ord){
-    const m=(ord.no||'').match(/(\d{2})(\d{2})\D*(\d+)/); // 例 HT-2607-01
+    const m=(ord.no||'').match(/(\d{2})(\d{2})\D*(\d+)/);
     if(m){ return parseInt(m[1])*1000000 + parseInt(m[2])*10000 + parseInt(m[3]); }
     const d=(ord.date||'').replace(/\D/g,'');
     return d?parseInt(d.slice(2))||0:0;
   }
-  const sorted = [...base].sort((a,b)=>orderKey(b)-orderKey(a));
-  // 套用年月 + 關鍵字篩選（兩者皆須符合）
+  // 草稿沒有單號，改以最後修改時間排序（新到舊）
+  const sorted = view==='draft'
+    ? [...base].sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0))
+    : [...base].sort((a,b)=>orderKey(b)-orderKey(a));
   const fYM = ymSel ? ymSel.value : '';
   const fKw = ((document.getElementById('order-filter-kw')||{}).value||'').trim().toLowerCase();
   const filtered = sorted.filter(ord=>{
@@ -1112,18 +1128,26 @@ function renderOrderList(){
       `<span class="order-badge badge-hinge">框形</span>`:
       `<span class="order-badge badge-track">軌道</span>`).join(' ');
     const dateStr = ord.updatedAt ? new Date(ord.updatedAt).toLocaleString('zh-TW',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
-    const actions = trash
-      ? `<button class="btn btn-secondary" style="font-size:12px;padding:6px 14px" onclick="restoreOrder('${ord.id}')">↩️ 還原</button>
-        <button class="btn btn-danger" style="font-size:12px;padding:6px 12px" onclick="confirmPermDelete('${ord.id}',this)">永久刪除</button>`
-      : `<button class="btn btn-secondary" style="font-size:12px;padding:6px 14px" onclick="loadOrder('${ord.id}')">✏️ 開啟編輯</button>
+    let actions;
+    if(view==='trash'){
+      actions = `<button class="btn btn-secondary" style="font-size:12px;padding:6px 14px" onclick="restoreOrder('${ord.id}')">↩️ 還原</button>
+        <button class="btn btn-danger" style="font-size:12px;padding:6px 12px" onclick="confirmPermDelete('${ord.id}',this)">永久刪除</button>`;
+    } else if(view==='draft'){
+      actions = `<button class="btn btn-secondary" style="font-size:12px;padding:6px 14px" onclick="loadOrder('${ord.id}')">✏️ 開啟編輯</button>
+        ${admin?`<button class="btn" style="background:#0a8040;color:#fff;font-size:12px;padding:6px 12px" onclick="confirmConvert('${ord.id}',this)">✅ 轉為正式</button>`:''}
+        <button class="btn btn-danger" style="font-size:12px;padding:6px 12px" onclick="confirmDeleteOrder('${ord.id}',this)">刪除</button>`;
+    } else {
+      actions = `<button class="btn btn-secondary" style="font-size:12px;padding:6px 14px" onclick="loadOrder('${ord.id}')">✏️ 開啟編輯</button>
         <button class="btn btn-secondary" style="font-size:12px;padding:6px 14px" onclick="exportOrder('${ord.id}')">📤 匯出</button>
         <button class="btn btn-danger" style="font-size:12px;padding:6px 12px" onclick="confirmDeleteOrder('${ord.id}',this)">刪除</button>`;
-    const delInfo = (trash && ord.deletedAt)
+    }
+    const delInfo = (view==='trash' && ord.deletedAt)
       ? `<div class="order-sub" style="color:#c0392b">🗑 ${new Date(ord.deletedAt).toLocaleString('zh-TW',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})} 由 ${((ord.deletedBy||'').split('@')[0])||'—'} 刪除</div>`
       : '';
+    const titleNo = ord.no ? ord.no+' ／ ' : (view==='draft'?'<span style="color:#e67e22">草稿</span> ／ ':'');
     return `<div class="order-list-item">
       <div class="order-meta">
-        <div class="order-title">${ord.no?ord.no+' ／ ':''}${ord.client||'（未填客戶名稱）'}${salespersonBadge(ord)}</div>
+        <div class="order-title">${titleNo}${ord.client||'（未填客戶名稱）'}${salespersonBadge(ord)}</div>
         <div class="order-sub">📅 ${ord.date||'—'} &nbsp;｜&nbsp; 最後修改 ${dateStr} &nbsp;｜&nbsp; ${itemCount} 筆品項 &nbsp; ${typeLabel}</div>
         ${delInfo}
       </div>
@@ -1170,8 +1194,14 @@ function saveCurrentOrder(){
   const no=document.getElementById('s1-no')?.value||'';
   const client=document.getElementById('s1-client')?.value||'';
   const existing = allOrders.findIndex(o=>o.id===currentOrderId);
-  const ord = { id:currentOrderId, date, no, client, items:[...items], updatedAt:Date.now(),
-    owner: currentUser?currentUser.uid:'', ownerEmail: currentUser?currentUser.email:'' };
+  const prev = existing>=0 ? allOrders[existing] : null;
+  // 合併既有欄位（status/deleted/owner…），避免編輯時被清掉
+  const ord = Object.assign({}, prev, {
+    id:currentOrderId, date, no, client, items:[...items], updatedAt:Date.now(),
+    owner: (prev&&prev.owner) ? prev.owner : (currentUser?currentUser.uid:''),
+    ownerEmail: (prev&&prev.ownerEmail) ? prev.ownerEmail : (currentUser?currentUser.email:'')
+  });
+  if(!prev) ord.status='draft';        // 新訂單一律先進「草稿」，轉正式才發號
   if(existing>=0) allOrders[existing]=ord;
   else allOrders.push(ord);
   saveAllOrders();
@@ -1192,8 +1222,8 @@ function confirmDeleteOrder(id, btn){
   actions.appendChild(conf);
 }
 
-// 已刪除資料夾檢視狀態（僅管理員）
-let orderTrashMode=false;
+// 訂單檢視狀態：'formal'（歷史訂單）/ 'draft'（草稿）/ 'trash'（已刪除，僅管理員）
+let orderView='formal';
 
 // 刪除＝軟刪除：標記 deleted，資料仍留雲端，只是隱藏（設計 A-1，不論管理員或業務都走這裡）
 function deleteOrder(id){
@@ -1239,8 +1269,58 @@ function permanentDeleteOrder(id){
 // 切換「已刪除訂單」檢視（僅管理員）
 function toggleTrashView(){
   if(!isAdminUser()) return;
-  orderTrashMode=!orderTrashMode;
+  orderView = (orderView==='trash') ? 'formal' : 'trash';
   renderOrderList();
+}
+
+// 切換 歷史訂單 / 草稿 分頁
+function switchOrderView(v){
+  if(v==='trash' && !isAdminUser()) return;
+  orderView=v;
+  renderOrderList();
+}
+
+// 產生下一個連續正式單號 HT-YYMM-NN（依「當月」與現有全部訂單，不跳號、不重號）
+function nextOrderNo(){
+  const now=new Date();
+  const yy=String(now.getFullYear()).slice(-2);
+  const mm=String(now.getMonth()+1).padStart(2,'0');
+  const ym=yy+mm;
+  const re=new RegExp('^HT-'+ym+'-(\\d+)$');
+  let max=0;
+  allOrders.forEach(o=>{ const m=(o.no||'').match(re); if(m){ const n=parseInt(m[1]); if(n>max) max=n; } });
+  return 'HT-'+ym+'-'+String(max+1).padStart(2,'0');
+}
+
+// 把草稿轉為正式訂單並發號（僅管理員）
+function convertToFormal(id){
+  if(!isAdminUser()) return;
+  loadAllOrders();
+  const ord=allOrders.find(o=>o.id===id);
+  if(!ord) return;
+  ord.no = nextOrderNo();                                   // 當下發連續號
+  ord.status='formal';
+  if(!ord.date) ord.date=new Date().toISOString().slice(0,10);
+  ord.updatedAt=Date.now();
+  saveAllOrders();
+  cloudSaveOrder(ord);
+  showToast('✅ 已轉為正式訂單 '+ord.no);
+  orderView='formal';
+  renderOrderList();
+}
+
+// 轉正式的行內確認
+function confirmConvert(id, btn){
+  const actions=btn.closest('.order-actions');
+  if(actions.querySelector('.del-confirm')) return;
+  btn.style.display='none';
+  const conf=document.createElement('span');
+  conf.className='del-confirm';
+  conf.style.cssText='display:flex;align-items:center;gap:6px';
+  conf.innerHTML=`<span style="font-size:12px;color:#0a8040;font-weight:600">轉正式並發號？</span>
+    <button class="btn" style="background:#0a8040;color:#fff;font-size:12px;padding:5px 12px" onclick="convertToFormal('${id}')">確定</button>
+    <button class="btn btn-secondary" style="font-size:12px;padding:5px 12px" onclick="renderOrderList()">取消</button>`;
+  actions.appendChild(conf);
 }
 
 // 永久刪除的行內確認（破壞性，需二次確認）
@@ -1330,7 +1410,7 @@ let items=[], editIdx=-1;
 function goToItems(){
   const no=(document.getElementById('s1-no').value||'').trim();
   const client=(document.getElementById('s1-client').value||'').trim();
-  const others=allOrders.filter(o=>o.id!==currentOrderId);
+  const others=allOrders.filter(o=>o.id!==currentOrderId && o.status!=='draft' && o.deleted!==true);
   const dup=[];
   if(no && others.some(o=>(o.no||'').trim()===no))
     dup.push(`訂單號碼「${no}」已存在於訂單列表，請勿重複`);
