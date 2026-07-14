@@ -220,8 +220,7 @@ h2{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px;padding-botto
   </div>
   <div class="btn-row">
     <button class="btn btn-secondary no-print" onclick="goStep(0)">← 訂單列表</button>
-    <button class="btn btn-secondary no-print" onclick="if(currentOrderId){saveCurrentOrder();showToast('💾 訂單已儲存並同步');}">💾 儲存訂單</button>
-    <button class="btn btn-primary" onclick="goReport()">📄 產生報表 →</button>
+    <button class="btn btn-primary" onclick="goReport()">💾 儲存並產生報表 →</button>
   </div>
 </div>
 </div>
@@ -2241,6 +2240,8 @@ function downloadDiagram(fmt){
 
 function goReport(){
   if(!items.length){showErr(['請至少新增一筆品項後再產生報表']);return;}
+  // 產生報表前先儲存訂單（合併「儲存訂單」與「產生報表」為一個動作）
+  if(currentOrderId){ saveCurrentOrder(); showToast('💾 訂單已儲存並同步'); }
   document.querySelectorAll('.step-page').forEach(p=>p.classList.remove('active'));
   document.getElementById('report-page').classList.add('active');
   const today=new Date().toLocaleDateString('zh-TW');
