@@ -938,8 +938,9 @@ function doLogout(){
 // 把訂單存到雲端時，移除大型圖片（避免超過 Firestore 單筆 1MB 限制），圖片仍保留在本機
 function stripImagesForCloud(ord){
   const copy = JSON.parse(JSON.stringify(ord));
-  copy.owner = currentUser ? currentUser.uid : '';
-  copy.ownerEmail = currentUser ? currentUser.email : '';
+  // 保留原擁有者，切勿覆蓋（管理員代操作時擁有者仍是原業務）；僅在缺漏時補上目前使用者
+  if(!copy.owner) copy.owner = currentUser ? currentUser.uid : '';
+  if(!copy.ownerEmail) copy.ownerEmail = currentUser ? currentUser.email : '';
   (copy.items||[]).forEach(it=>{
     if(it.images && it.images.length){ it._imgCount = it.images.length; it.images=[]; }
   });
@@ -1138,6 +1139,7 @@ function renderOrderList(){
         <button class="btn btn-danger" style="font-size:12px;padding:6px 12px" onclick="confirmDeleteOrder('${ord.id}',this)">刪除</button>`;
     } else {
       actions = `<button class="btn btn-secondary" style="font-size:12px;padding:6px 14px" onclick="loadOrder('${ord.id}')">✏️ 開啟編輯</button>
+        ${admin?`<button class="btn btn-secondary" style="font-size:12px;padding:6px 12px" onclick="editOrderNo('${ord.id}')">✏️ 改號</button>`:''}
         <button class="btn btn-secondary" style="font-size:12px;padding:6px 14px" onclick="exportOrder('${ord.id}')">📤 匯出</button>
         <button class="btn btn-danger" style="font-size:12px;padding:6px 12px" onclick="confirmDeleteOrder('${ord.id}',this)">刪除</button>`;
     }
@@ -1321,6 +1323,26 @@ function confirmConvert(id, btn){
     <button class="btn" style="background:#0a8040;color:#fff;font-size:12px;padding:5px 12px" onclick="convertToFormal('${id}')">確定</button>
     <button class="btn btn-secondary" style="font-size:12px;padding:5px 12px" onclick="renderOrderList()">取消</button>`;
   actions.appendChild(conf);
+}
+
+// 編輯正式訂單單號（僅管理員），含格式與重複檢查
+function editOrderNo(id){
+  if(!isAdminUser()) return;
+  loadAllOrders();
+  const ord=allOrders.find(o=>o.id===id);
+  if(!ord) return;
+  const val=prompt('修改訂單號碼（格式建議 HT-YYMM-NN，例如 HT-2608-01）：', ord.no||'');
+  if(val===null) return;                 // 按取消
+  const nn=val.trim();
+  if(!nn){ showToast('⚠️ 訂單號不可空白'); return; }
+  const dup=allOrders.some(o=>o.id!==id && o.status!=='draft' && o.deleted!==true && (o.no||'').trim()===nn);
+  if(dup){ showToast('⚠️ 訂單號「'+nn+'」已存在，請換一個'); return; }
+  ord.no=nn;
+  ord.updatedAt=Date.now();
+  saveAllOrders();
+  cloudSaveOrder(ord);
+  showToast('✅ 單號已改為 '+nn);
+  renderOrderList();
 }
 
 // 永久刪除的行內確認（破壞性，需二次確認）
