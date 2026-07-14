@@ -1018,21 +1018,23 @@ if(FIREBASE_READY){
   });
 }
 
-// 下單業務標籤（僅管理員可見）：顯示 email @ 前名稱，依 email 雜湊固定配色
+// 下單業務標籤（僅管理員可見，且管理員自己的訂單不顯示）：email @ 前名稱，依 email 雜湊固定配色
 const SALES_COLORS=[
-  {bg:'#E6F1FB',fg:'#0C447C'}, {bg:'#EEEDFE',fg:'#3C3489'},
-  {bg:'#EAF3DE',fg:'#27500A'}, {bg:'#FAEEDA',fg:'#633806'},
-  {bg:'#FBEAF0',fg:'#72243E'}, {bg:'#E1F5EE',fg:'#085041'},
-  {bg:'#FAECE7',fg:'#712B13'}
+  {bg:'#B5D4F4',fg:'#042C53'}, {bg:'#FAC775',fg:'#412402'},
+  {bg:'#C0DD97',fg:'#173404'}, {bg:'#CECBF6',fg:'#26215C'},
+  {bg:'#F4C0D1',fg:'#4B1528'}, {bg:'#9FE1CB',fg:'#04342C'},
+  {bg:'#F5C4B3',fg:'#4A1B0C'}
 ];
 function salespersonBadge(ord){
-  if(!isAdminUser()) return '';                 // 只有管理員看得到
+  if(!isAdminUser()) return '';                              // 只有管理員看得到
   const email=(ord.ownerEmail||'').trim();
-  if(!email) return '';                          // 舊訂單沒存 email 就不顯示
+  if(!email) return '';                                      // 舊訂單沒存 email 不顯示
+  if(ADMIN_EMAILS.includes(email.toLowerCase())) return '';  // 管理員自己下的單不顯示標籤
   const name=email.split('@')[0];
   let h=0; for(let i=0;i<email.length;i++) h=(h*31+email.charCodeAt(i))>>>0;
   const c=SALES_COLORS[h%SALES_COLORS.length];
-  return `<span style="display:inline-flex;align-items:center;gap:3px;background:${c.bg};color:${c.fg};font-size:12px;font-weight:600;padding:2px 9px;border-radius:20px;margin-left:8px;vertical-align:middle;white-space:nowrap">👤 ${name}</span>`;
+  const icon=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><circle cx="12" cy="7" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>`;
+  return `<span style="display:inline-flex;align-items:center;gap:4px;background:${c.bg};color:${c.fg};font-size:12px;font-weight:600;padding:2px 10px;border-radius:20px;margin-left:8px;vertical-align:middle;white-space:nowrap">${icon}${name}</span>`;
 }
 
 function renderOrderList(){
