@@ -155,7 +155,10 @@ h2{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px;padding-botto
     <button class="btn-gdrive-out" onclick="doLogout()">登出</button>
   </div>
   <div class="card">
-    <h2>📋 歷史訂單</h2>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px">
+      <h2 id="order-list-title" style="margin:0">📋 歷史訂單</h2>
+      <button id="trash-toggle" onclick="toggleTrashView()" style="display:none;align-items:center;gap:5px;padding:7px 14px;border:1.5px solid #ddd;border-radius:7px;background:#fff;font-size:13px;cursor:pointer;font-family:inherit;color:#555">🗑 已刪除訂單 (0)</button>
+    </div>
     <div id="order-filter-bar" style="display:none;gap:10px;flex-wrap:wrap;align-items:center;margin:4px 0 14px">
       <select id="order-filter-ym" onchange="renderOrderList()" style="padding:8px 10px;border:1.5px solid #ddd;border-radius:7px;font-size:13px;font-family:inherit;min-width:150px;background:#fff">
         <option value="">全部年月</option>
@@ -1040,36 +1043,53 @@ function salespersonBadge(ord){
 function renderOrderList(){
   loadAllOrders();
   const wrap = document.getElementById('order-list-wrap');
+  const admin = isAdminUser();
+  if(!admin) orderTrashMode=false;              // 非管理員不可進入已刪除資料夾
+  const trash = orderTrashMode;
   // 由訂單號取出年月（YYMM）：格式 HT-YYMM-NN 或 HTYYMMNN 皆可
   function ymOf(ord){
     const m=(ord.no||'').match(/(\d{2})(\d{2})/);
     return m? m[1]+m[2] : '';
   }
-  // 篩選列：有訂單才顯示
+  // 基礎集合：正常模式＝未刪除；垃圾桶模式＝已刪除
+  const base = allOrders.filter(o=> trash ? o.deleted===true : o.deleted!==true);
+  // 標題切換
+  const titleEl=document.getElementById('order-list-title');
+  if(titleEl) titleEl.textContent = trash ? '🗑 已刪除訂單' : '📋 歷史訂單';
+  // 垃圾桶按鈕（僅管理員，顯示已刪除筆數）
+  const trashBtn=document.getElementById('trash-toggle');
+  if(trashBtn){
+    if(admin){
+      const delCount=allOrders.filter(o=>o.deleted===true).length;
+      trashBtn.style.display='inline-flex';
+      trashBtn.textContent = trash ? '← 返回歷史訂單' : `🗑 已刪除訂單 (${delCount})`;
+    } else { trashBtn.style.display='none'; }
+  }
+  // 篩選列：基礎集合有訂單才顯示
   const bar=document.getElementById('order-filter-bar');
-  if(bar) bar.style.display = allOrders.length ? 'flex' : 'none';
-  // 年月下拉：蒐集所有年月，保留目前選取值後重建選項
+  if(bar) bar.style.display = base.length ? 'flex' : 'none';
+  // 年月下拉：從基礎集合蒐集，保留目前選取值後重建
   const ymSel=document.getElementById('order-filter-ym');
   if(ymSel){
     const cur=ymSel.value;
-    const yms=[...new Set(allOrders.map(ymOf).filter(Boolean))].sort((a,b)=>b.localeCompare(a));
+    const yms=[...new Set(base.map(ymOf).filter(Boolean))].sort((a,b)=>b.localeCompare(a));
     ymSel.innerHTML=`<option value="">全部年月</option>`+yms.map(ym=>`<option value="${ym}">20${ym.slice(0,2)}年${ym.slice(2)}月</option>`).join('');
     ymSel.value = yms.includes(cur) ? cur : '';
   }
-  if(!allOrders.length){
-    wrap.innerHTML=`<div class="empty-orders"><div class="icon">📭</div><div>尚無任何訂單<br><span style="font-size:12px">點擊「建立新訂單」開始</span></div></div>`;
+  if(!base.length){
+    wrap.innerHTML = trash
+      ? `<div class="empty-orders"><div class="icon">🗑</div><div>已刪除資料夾是空的</div></div>`
+      : `<div class="empty-orders"><div class="icon">📭</div><div>尚無任何訂單<br><span style="font-size:12px">點擊「建立新訂單」開始</span></div></div>`;
     return;
   }
   // 依訂單號碼排序（新到舊，最舊在最下）；編輯不影響位置
-  // 訂單號碼格式 HT-YYMM-NN → 取數字 YYMMNN 作為排序鍵，越大越新（越上面）
   function orderKey(ord){
     const m=(ord.no||'').match(/(\d{2})(\d{2})\D*(\d+)/); // 例 HT-2607-01
     if(m){ return parseInt(m[1])*1000000 + parseInt(m[2])*10000 + parseInt(m[3]); }
-    // 無法解析者，退而用日期字串，再不行放最下
     const d=(ord.date||'').replace(/\D/g,'');
     return d?parseInt(d.slice(2))||0:0;
   }
-  const sorted = [...allOrders].sort((a,b)=>orderKey(b)-orderKey(a));
+  const sorted = [...base].sort((a,b)=>orderKey(b)-orderKey(a));
   // 套用年月 + 關鍵字篩選（兩者皆須符合）
   const fYM = ymSel ? ymSel.value : '';
   const fKw = ((document.getElementById('order-filter-kw')||{}).value||'').trim().toLowerCase();
@@ -1092,16 +1112,22 @@ function renderOrderList(){
       `<span class="order-badge badge-hinge">框形</span>`:
       `<span class="order-badge badge-track">軌道</span>`).join(' ');
     const dateStr = ord.updatedAt ? new Date(ord.updatedAt).toLocaleString('zh-TW',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
+    const actions = trash
+      ? `<button class="btn btn-secondary" style="font-size:12px;padding:6px 14px" onclick="restoreOrder('${ord.id}')">↩️ 還原</button>
+        <button class="btn btn-danger" style="font-size:12px;padding:6px 12px" onclick="confirmPermDelete('${ord.id}',this)">永久刪除</button>`
+      : `<button class="btn btn-secondary" style="font-size:12px;padding:6px 14px" onclick="loadOrder('${ord.id}')">✏️ 開啟編輯</button>
+        <button class="btn btn-secondary" style="font-size:12px;padding:6px 14px" onclick="exportOrder('${ord.id}')">📤 匯出</button>
+        <button class="btn btn-danger" style="font-size:12px;padding:6px 12px" onclick="confirmDeleteOrder('${ord.id}',this)">刪除</button>`;
+    const delInfo = (trash && ord.deletedAt)
+      ? `<div class="order-sub" style="color:#c0392b">🗑 ${new Date(ord.deletedAt).toLocaleString('zh-TW',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})} 由 ${((ord.deletedBy||'').split('@')[0])||'—'} 刪除</div>`
+      : '';
     return `<div class="order-list-item">
       <div class="order-meta">
         <div class="order-title">${ord.no?ord.no+' ／ ':''}${ord.client||'（未填客戶名稱）'}${salespersonBadge(ord)}</div>
         <div class="order-sub">📅 ${ord.date||'—'} &nbsp;｜&nbsp; 最後修改 ${dateStr} &nbsp;｜&nbsp; ${itemCount} 筆品項 &nbsp; ${typeLabel}</div>
+        ${delInfo}
       </div>
-      <div class="order-actions">
-        <button class="btn btn-secondary" style="font-size:12px;padding:6px 14px" onclick="loadOrder('${ord.id}')">✏️ 開啟編輯</button>
-        <button class="btn btn-secondary" style="font-size:12px;padding:6px 14px" onclick="exportOrder('${ord.id}')">📤 匯出</button>
-        <button class="btn btn-danger" style="font-size:12px;padding:6px 12px" onclick="confirmDeleteOrder('${ord.id}',this)">刪除</button>
-      </div>
+      <div class="order-actions">${actions}</div>
     </div>`;
   }).join('');
 }
@@ -1160,19 +1186,75 @@ function confirmDeleteOrder(id, btn){
   const conf = document.createElement('span');
   conf.className='del-confirm';
   conf.style.cssText='display:flex;align-items:center;gap:6px';
-  conf.innerHTML=`<span style="font-size:12px;color:#e05;font-weight:600">確定？</span>
+  conf.innerHTML=`<span style="font-size:12px;color:#e05;font-weight:600">移到已刪除？</span>
     <button class="btn" style="background:#e05;color:#fff;font-size:12px;padding:5px 12px" onclick="deleteOrder('${id}')">確定</button>
-    <button class="btn btn-secondary" style="font-size:12px;padding:5px 12px" onclick="this.closest('.del-confirm').remove();document.querySelector('[onclick*=\\'${id}\\']').style.display=''">取消</button>`;
+    <button class="btn btn-secondary" style="font-size:12px;padding:5px 12px" onclick="renderOrderList()">取消</button>`;
   actions.appendChild(conf);
 }
 
+// 已刪除資料夾檢視狀態（僅管理員）
+let orderTrashMode=false;
+
+// 刪除＝軟刪除：標記 deleted，資料仍留雲端，只是隱藏（設計 A-1，不論管理員或業務都走這裡）
 function deleteOrder(id){
+  loadAllOrders();
+  const ord=allOrders.find(o=>o.id===id);
+  if(ord){
+    ord.deleted=true;
+    ord.deletedAt=Date.now();
+    ord.deletedBy=currentUser?currentUser.email:'';
+    saveAllOrders();
+    cloudSaveOrder(ord);          // 用 update 保存標記，不是真的刪
+    showToast('🗑 已移到「已刪除訂單」，可在該區還原');
+  }
+  renderOrderList();
+}
+
+// 還原（僅管理員）：清除 deleted 標記，訂單回到主清單
+function restoreOrder(id){
+  if(!isAdminUser()) return;
+  loadAllOrders();
+  const ord=allOrders.find(o=>o.id===id);
+  if(ord){
+    ord.deleted=false;
+    delete ord.deletedAt; delete ord.deletedBy;
+    saveAllOrders();
+    cloudSaveOrder(ord);
+    showToast('↩️ 訂單已還原');
+  }
+  renderOrderList();
+}
+
+// 永久刪除（僅管理員）：真的從雲端與本機移除，無法復原
+function permanentDeleteOrder(id){
+  if(!isAdminUser()) return;
   loadAllOrders();
   allOrders = allOrders.filter(o=>o.id!==id);
   saveAllOrders();
   cloudDeleteOrder(id);
-  showToast('🗑 訂單已刪除');
+  showToast('❌ 訂單已永久刪除');
   renderOrderList();
+}
+
+// 切換「已刪除訂單」檢視（僅管理員）
+function toggleTrashView(){
+  if(!isAdminUser()) return;
+  orderTrashMode=!orderTrashMode;
+  renderOrderList();
+}
+
+// 永久刪除的行內確認（破壞性，需二次確認）
+function confirmPermDelete(id, btn){
+  const actions=btn.closest('.order-actions');
+  if(actions.querySelector('.del-confirm')) return;
+  btn.style.display='none';
+  const conf=document.createElement('span');
+  conf.className='del-confirm';
+  conf.style.cssText='display:flex;align-items:center;gap:6px';
+  conf.innerHTML=`<span style="font-size:12px;color:#e05;font-weight:600">永久刪除？無法復原</span>
+    <button class="btn" style="background:#e05;color:#fff;font-size:12px;padding:5px 12px" onclick="permanentDeleteOrder('${id}')">永久刪除</button>
+    <button class="btn btn-secondary" style="font-size:12px;padding:5px 12px" onclick="renderOrderList()">取消</button>`;
+  actions.appendChild(conf);
 }
 
 function exportOrder(id){
