@@ -62,6 +62,9 @@ h2{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px;padding-botto
 .notes-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .note-item{border:1px solid #ccc;border-radius:6px;padding:10px;font-size:12px;line-height:1.7;background:#fafafa}
 .note-item strong{display:block;color:#1a1a2e;margin-bottom:4px;font-size:13px}
+/* 報表備註區條件標色：藍字／黑字（列印時亦保留顏色） */
+.rpt-blue{color:#1155cc;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.rpt-black{color:#000}
 .print-bar{background:#1a1a2e;padding:12px 20px;display:flex;gap:10px;align-items:center}
 .print-bar span{color:#fff;font-weight:600;font-size:15px;flex:1}
 /* 訂單管理 */
@@ -102,13 +105,17 @@ h2{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px;padding-botto
 @media print{
   @page{margin:8mm 6mm}
   .print-bar,.no-print{display:none!important}
-  body{background:#fff}
+  body{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .report-wrap{padding:0;max-width:100%;margin:0;width:100%}
   .report-table{font-size:9px}
-  .report-table th,.report-table td{padding:3px 4px;color:#000!important;background:#fff!important;border-color:#000!important}
+  .report-table th,.report-table td,.report-table th *,.report-table td *{color:#000!important;background:#fff!important;border-color:#000!important}
   .report-table th{font-weight:700}
-  .note-item{border:1px solid #000!important;background:#fff!important;color:#000!important}
+  .report-table th,.report-table td{padding:3px 4px}
+  .note-item{border:1px solid #000!important;background:#fff!important}
   *{color:#000!important;border-color:#000!important}
+  /* 報表備註區的條件標色：列印時保留藍字，並要求瀏覽器精確輸出顏色 */
+  .note-item .rpt-blue,span.rpt-blue{color:#1155cc!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  .note-item .rpt-black,span.rpt-black{color:#000!important}
   .report-header table td,.report-header table th{border-color:#000!important}
 }
 </style>
@@ -2384,11 +2391,11 @@ function goReport(){
         if(it['header-len']&&+it['header-len']>0) boxStr+=`　頂板長度：${it['header-len']}mm`;
         lines.push(boxStr);
       }
-      if(it['top-track']&&+it['top-track']>0) lines.push(`<span style="color:#1155cc">上滑軌長度：${it['top-track']}mm</span>`);
+      if(it['top-track']&&+it['top-track']>0) lines.push(`<span class="rpt-blue">上滑軌長度：${it['top-track']}mm</span>`);
       if(it['bot-track']&&+it['bot-track']>0){
         // 下滑軌長度顏色連動下滑軌類型：選「下滑軌U型」時藍字，其他選項一律黑字
         const botUType=(it['bot-track-type']||'').includes('下滑軌U型');
-        lines.push(`<span style="color:${botUType?'#1155cc':'#000'}">下滑軌長度：${it['bot-track']}mm</span>`);
+        lines.push(`<span class="${botUType?'rpt-blue':'rpt-black'}">下滑軌長度：${it['bot-track']}mm</span>`);
       }
       if(it['split-rod']&&it['split-rod']!=='None'){
         let rodVal;
@@ -2404,12 +2411,12 @@ function goReport(){
       if(it['bot-track-type']){
         // 下滑軌類型選「下滑軌U型」時藍字，其他選項黑字
         const uType=(it['bot-track-type']||'').includes('下滑軌U型');
-        lines.push(`<span style="color:${uType?'#1155cc':'#000'}">滑軌：${it['bot-track-type']}</span>`);
+        lines.push(`<span class="${uType?'rpt-blue':'rpt-black'}">滑軌：${it['bot-track-type']}</span>`);
       }
       // 上滑軌顏色欄位已停用，報表不顯示
       // U型下滑軌顏色：僅當下滑軌類型為「下滑軌U型」時顯示
       if(it['bot-color'] && (it['bot-track-type']||'').includes('下滑軌U型')){
-        lines.push(`<span style="color:#1155cc">U型下滑軌顏色：${it['bot-color']}</span>`);
+        lines.push(`<span class="rpt-blue">U型下滑軌顏色：${it['bot-color']}</span>`);
       }
       if(it['fascia-l']==='YES') lines.push(`側頂飾板左：YES`);
       if(it['fascia-r']==='YES') lines.push(`側頂飾板右：YES`);
