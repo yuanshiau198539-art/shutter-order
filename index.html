@@ -1489,6 +1489,9 @@ function clearForm(type){
   ['program','room','room-custom','width','height','notes','panel-custom','split-rod-custom'].forEach(f=>{
     const el=document.getElementById(p+f); if(el) el.value='';
   });
+  // 開新品項時清空所有核取方塊（特殊選項、花邊預鑽孔等），避免沿用上一筆的勾選
+  const container=document.getElementById(type==='hinge'?'step-hinge':'step-track');
+  if(container) container.querySelectorAll('input[type=checkbox]').forEach(cb=>cb.checked=false);
   if(type==='hinge'){
     document.getElementById('h-timber-list').innerHTML='';
     document.getElementById('h-img-list').innerHTML='';
@@ -1517,6 +1520,17 @@ function fillForm(type,d){
   // 載入圖片
   document.getElementById(`${prefix}-img-list`).innerHTML='';
   if(d.images&&d.images.length) loadImages(prefix, d.images);
+  // 房間號還原：品項存的是「解析後房名」。若該值不在下拉選項中，視為自訂名稱
+  //  → 下拉設 Other、把名稱放回自訂欄；避免自訂欄殘留上一筆的值（相容新舊資料）
+  const roomSel=document.getElementById(p+'room');
+  const roomCust=document.getElementById(p+'room-custom');
+  if(roomSel && roomCust){
+    const val = (d.room!=null) ? String(d.room) : '';
+    const opts = [...roomSel.options].map(o=>o.value);
+    if(val && opts.includes(val)){ roomSel.value=val; roomCust.value=''; }   // 標準房間
+    else if(val){ roomSel.value=''; roomCust.value=val; }                    // 自訂名稱
+    else { roomSel.value=''; roomCust.value=''; }                            // 未填
+  }
   // 回填雙層分段位置 radio（radio 以 name 分組、非 id 對應，通用迴圈抓不到，需手動勾選；且須在 toggle 之前，以免自定義值被清空）
   if(type==='hinge'){
     document.querySelectorAll('input[name="h-dhloc"]').forEach(r=>{ r.checked=(r.value===(d.dhloc||'')); });
