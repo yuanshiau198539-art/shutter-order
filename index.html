@@ -381,9 +381,11 @@ h2{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px;padding-botto
         <select id="h-frame">
           <option>Beaded L Frame 32mm</option>
           <option>Beaded L Frame 46mm</option>
+          <option>Beaded L Frame 54mm</option>
           <option>Beaded L Frame 60mm</option>
           <option>Vintage L Frame 32mm</option>
           <option>Vintage L Frame 46mm</option>
+          <option>Vintage L Frame 54mm</option>
           <option>Vintage L Frame 60mm</option>
           <option>Vintage L Frame 76mm</option>
           <option>Camber Deco Frame 50mm</option>
@@ -713,6 +715,7 @@ h2{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px;padding-botto
         <label><input type="checkbox" id="t-fn-uv"> 百葉窗漆面品質請確保完整，皆須添加抗UV劑，需附帶同色漆瓶</label>
         <label><input type="checkbox" id="t-fn-pulley"> 上方滑輪豎柱請铣槽我司提供的U型五金零配件</label>
         <label><input type="checkbox" id="t-fn-pivot"> 下方彈性消軸請配上我司提供的白色彈性消軸</label>
+        <label><input type="checkbox" id="t-fn-predrill"> 門片豎柱底部請預鑽對應滑輪彈性消軸位置，直徑12mm，深度40mm，不配銷軸</label>
         <label><input type="checkbox" id="t-fn-stile"> 木紋色57豎柱不採用&lt;指接&gt;豎柱，一律使用整片板材方式製作</label>
       </div>
     </div>
@@ -1874,7 +1877,7 @@ function doSaveItem(type){
       'bot-drill':getV('bot-drill'),'top-color':getV('top-color'),'bot-color':getV('bot-color'),
       ringpull:getV('ringpull'),handle:getV('handle'),
       'sp-rabbet':getV('sp-rabbet'),'sp-efascia':getV('sp-efascia'),'sp-split':getV('sp-split'),
-      'fn-uv':getV('fn-uv'),'fn-pulley':getV('fn-pulley'),'fn-pivot':getV('fn-pivot'),'fn-stile':getV('fn-stile'),
+      'fn-uv':getV('fn-uv'),'fn-pulley':getV('fn-pulley'),'fn-pivot':getV('fn-pivot'),'fn-predrill':getV('fn-predrill'),'fn-stile':getV('fn-stile'),
     });
   }
   d.timbers=collectTimbers(type==='hinge'?'h':'t');
@@ -2430,6 +2433,7 @@ function goReport(){
       if(it['fn-uv'])allSpT.push('漆面品質請確保完整，皆須添加抗UV劑，需附帶同色漆瓶');
       if(it['fn-pulley'])allSpT.push('上方滑輪豎柱請铣槽我司提供的U型五金零配件');
       if(it['fn-pivot'])allSpT.push('下方彈性消軸請配上我司提供的白色彈性消軸');
+      if(it['fn-predrill'])allSpT.push('門片豎柱底部請預鑽對應滑輪彈性消軸位置，直徑12mm，深度40mm，不配銷軸');
       if(it['fn-stile'])allSpT.push('木紋色57豎柱不採用<指接>豎柱，一律使用整片板材方式製作');
       if(allSpT.length) lines.push('特殊選項：'+allSpT.map((s,j)=>`${j+1}.${s}`).join('　'));
     }
