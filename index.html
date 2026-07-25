@@ -1520,6 +1520,8 @@ function fillForm(type,d){
   // 載入圖片
   document.getElementById(`${prefix}-img-list`).innerHTML='';
   if(d.images&&d.images.length) loadImages(prefix, d.images);
+  // 回填木料清單（動態卡片，通用迴圈抓不到）
+  try{ fillTimbers(prefix, d.timbers); }catch(e){}
   // 房間號還原：品項存的是「解析後房名」。若該值不在下拉選項中，視為自訂名稱
   //  → 下拉設 Other、把名稱放回自訂欄；避免自訂欄殘留上一筆的值（相容新舊資料）
   const roomSel=document.getElementById(p+'room');
@@ -1544,6 +1546,10 @@ function fillForm(type,d){
     try{ toggleHMid(); }catch(e){}
     try{ hPanelCalc(); }catch(e){}
     try{ toggleRoom('h'); }catch(e){}
+    // 產生上/下部 TCB 欄位後，把存好的位置與度數回填（動態欄位，通用迴圈抓不到）
+    try{ hLowerCalc(); }catch(e){}
+    try{ fillTCBPositions('h-main', d['main-tcb']); }catch(e){}
+    try{ fillTCBPositions('h-lower', d['lower-tcb']); }catch(e){}
   } else {
     try{ toggleTMid(); }catch(e){}
     try{ tPanelCalc(); }catch(e){}
@@ -1750,6 +1756,14 @@ function genTCBInputs(src, wrapId, prefix){
     html+=`</div>`;
   }
   wrap.innerHTML=html;
+}
+
+// 回填 T/C/B 位置與度數（編輯品項時，把存好的值寫回動態產生的欄位）
+function fillTCBPositions(prefix, tcb){
+  if(!tcb) return;
+  const put=(arr,kind)=>{ (arr||[]).forEach((v,i)=>{ const el=document.getElementById(`${prefix}-${kind}-${i+1}`); if(el && v!=='' && v!=null) el.value=v; }); };
+  put(tcb.tPos,'tpos'); put(tcb.cPos,'cpos'); put(tcb.bPos,'bpos');
+  put(tcb.cDeg,'cdeg'); put(tcb.bDeg,'bdeg');
 }
 
 function collectTCBPositions(prefix){
@@ -2500,6 +2514,19 @@ function addTimber(prefix){
       </div>
     </div>`);
 }
+// 回填木料清單（編輯品項時，重建每筆木料卡片並填回值）
+function fillTimbers(prefix, timbers){
+  const list=document.getElementById(`${prefix}-timber-list`);
+  if(!list) return;
+  list.innerHTML=''; timberCounters[prefix]=0;
+  (timbers||[]).forEach(t=>{
+    addTimber(prefix);
+    const n=timberCounters[prefix];
+    const put=(id,v)=>{ const el=document.getElementById(`${prefix}-${id}-${n}`); if(el&&v!=null&&v!=='') el.value=v; };
+    put('tw',t.w); put('td',t.d); put('tl',t.l); put('tn',t.qty); put('tc',t.color); put('tnote',t.note);
+  });
+}
+
 function collectTimbers(prefix){
   const timbers=[];
   document.getElementById(`${prefix}-timber-list`).querySelectorAll('.item-card').forEach(card=>{
