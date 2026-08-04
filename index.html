@@ -630,10 +630,20 @@ h2{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px;padding-botto
         <select id="t-ft"><option>YES</option><option>NO</option></select></div>
       <div class="field"><label>下 Bottom</label>
         <select id="t-fb"><option>YES</option><option>NO</option></select></div>
-      <div class="field"><label>擋光條左 Light Block Left</label>
-        <select id="t-lbl"><option>YES</option><option>NO</option></select></div>
-      <div class="field"><label>擋光條右 Light Block Right</label>
-        <select id="t-lbr"><option>YES</option><option>NO</option></select></div>
+      <div class="field"><label>左Left</label>
+        <select id="t-lbl" onchange="toggleTSideFrame()"><option>YES</option><option>NO</option></select></div>
+      <div class="field"><label>右Right</label>
+        <select id="t-lbr" onchange="toggleTSideFrame()"><option>YES</option><option>NO</option></select></div>
+    </div>
+    <div class="form-row r2">
+      <div class="field" id="t-lbl-type-col" style="display:none"><label>左Left 側板類型</label>
+        <select id="t-lbl-type">
+          <option>U型側板U shape side frame</option>
+          <option>L型側板+支柱L shape side frame+support strip</option></select></div>
+      <div class="field" id="t-lbr-type-col" style="display:none"><label>右Right 側板類型</label>
+        <select id="t-lbr-type">
+          <option>U型側板U shape side frame</option>
+          <option>L型側板+支柱L shape side frame+support strip</option></select></div>
     </div>
     <div class="form-row r2">
       <div class="field"><label>側頂飾板 左 Fascia Return Left</label>
@@ -1508,6 +1518,7 @@ function clearForm(type){
     try{ toggleUTrackColor(); }catch(e){}
     try{ toggleTFloating(); }catch(e){}
     try{ updateTBoxoutSize(); }catch(e){}
+    try{ toggleTSideFrame(); }catch(e){}
   }
 }
 
@@ -1561,6 +1572,7 @@ function fillForm(type,d){
     try{ toggleTFloating(); }catch(e){}
     // 依滑軌系統重建板塊尺寸選項後，回填存好的值
     try{ updateTBoxoutSize(); const bs=document.getElementById('t-boxout-size'); if(bs&&d['boxout-size']) bs.value=d['boxout-size']; }catch(e){}
+    try{ toggleTSideFrame(); }catch(e){}
   }
 }
 
@@ -1631,6 +1643,17 @@ function toggleTMid(){
   const m1=document.getElementById('t-mid1-col'); if(m1) m1.style.display=show?'flex':'none';
   const m2=document.getElementById('t-mid2-col'); if(m2) m2.style.display=show?'flex':'none';
 }
+// 左/右選 YES 時，才顯示對應的側板類型下拉；選 NO 隱藏
+function toggleTSideFrame(){
+  const setCol=(selId,colId)=>{
+    const s=document.getElementById(selId), c=document.getElementById(colId);
+    if(!s||!c) return;
+    c.style.display=(s.value==='YES')?'':'none';
+  };
+  setCol('t-lbl','t-lbl-type-col');
+  setCol('t-lbr','t-lbr-type-col');
+}
+
 function toggleTFloating(){
   const el=document.getElementById('t-track-type'); if(!el) return;
   const isSliding=el.value.includes('移門');
@@ -1917,7 +1940,7 @@ function doSaveItem(type){
       boxout:getV('boxout'),'boxout-size':getV('boxout-size'),
       'header-len':getV('header-len'),'top-track':getV('top-track'),'bot-track':getV('bot-track'),
       'panel-type':getV('panel-type'),
-      ft:getV('ft'),fb:getV('fb'),lbl:getV('lbl'),lbr:getV('lbr'),
+      ft:getV('ft'),fb:getV('fb'),lbl:getV('lbl'),lbr:getV('lbr'),'lbl-type':getV('lbl-type'),'lbr-type':getV('lbr-type'),
       'fascia-l':getV('fascia-l'),'fascia-r':getV('fascia-r'),
       'track-supply':getV('track-supply'),'bot-track-type':getV('bot-track-type'),
       'bot-drill':getV('bot-drill'),'top-color':getV('top-color'),'bot-color':getV('bot-color'),
@@ -2469,6 +2492,9 @@ function goReport(){
       }
       if(it['fascia-l']==='YES') lines.push(`側頂飾板左：YES`);
       if(it['fascia-r']==='YES') lines.push(`側頂飾板右：YES`);
+      // 左Left/右Right 選 YES 時，附上對應的側板類型
+      if(it.lbl==='YES' && it['lbl-type']) lines.push(`左Left 側板類型：${it['lbl-type']}`);
+      if(it.lbr==='YES' && it['lbr-type']) lines.push(`右Right 側板類型：${it['lbr-type']}`);
       if(it['bot-drill']==='YES') lines.push(`下滑軌鑲螺釘孔：YES`);
       const allSpT=[];
       if(it.ringpull==='Yes') allSpT.push('拉手 Ring Pull');
