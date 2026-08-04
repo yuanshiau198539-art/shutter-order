@@ -544,7 +544,7 @@ h2{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px;padding-botto
     <div class="section-divider">滑軌系統</div>
     <div class="form-row r3">
       <div class="field"><label>滑軌系統</label>
-        <select id="t-track-type" onchange="toggleTFloating()">
+        <select id="t-track-type" onchange="toggleTFloating();updateTBoxoutSize()">
           <option>90度 Bi-fold(90 degree bifold)</option>
           <option>移門Sliding-With Louvres in open</option>
           <option>移門Sliding-With Louvres in closed</option></select></div>
@@ -573,7 +573,7 @@ h2{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px;padding-botto
       <div class="field" id="t-boxout-size-row">
         <label>板塊尺寸 (mm)</label>
         <select id="t-boxout-size">
-          <option>76mm</option><option>100mm</option><option>150mm</option></select></div>
+          <option>76mm</option><option>89mm</option></select></div>
       <div class="field"><label>自定義頂板長度 (mm)</label>
         <input type="number" id="t-header-len" value="0"></div>
     </div>
@@ -1505,6 +1505,8 @@ function clearForm(type){
     try{ tPanelCalc(); }catch(e){}
     try{ toggleRoom('t'); }catch(e){}
     try{ toggleUTrackColor(); }catch(e){}
+    try{ toggleTFloating(); }catch(e){}
+    try{ updateTBoxoutSize(); }catch(e){}
   }
 }
 
@@ -1555,6 +1557,9 @@ function fillForm(type,d){
     try{ tPanelCalc(); }catch(e){}
     try{ toggleRoom('t'); }catch(e){}
     try{ toggleUTrackColor(); }catch(e){}
+    try{ toggleTFloating(); }catch(e){}
+    // 依滑軌系統重建板塊尺寸選項後，回填存好的值
+    try{ updateTBoxoutSize(); const bs=document.getElementById('t-boxout-size'); if(bs&&d['boxout-size']) bs.value=d['boxout-size']; }catch(e){}
   }
 }
 
@@ -1632,6 +1637,18 @@ function toggleTFloating(){
   const hingeRow=document.getElementById('t-hinge-color-row');
   if(floatRow) floatRow.style.display=isSliding?'none':'flex';
   if(hingeRow) hingeRow.style.display=isSliding?'none':'flex';
+}
+
+// 板塊尺寸依滑軌系統動態切換：Bi-fold→76/89mm；移門→114/140/160/200mm
+function updateTBoxoutSize(){
+  const sel=document.getElementById('t-track-type');
+  const size=document.getElementById('t-boxout-size');
+  if(!sel||!size) return;
+  const cur=size.value;
+  const isBifold=(sel.value||'').includes('Bi-fold');
+  const opts = isBifold ? ['76mm','89mm'] : ['114mm','140mm','160mm','200mm'];
+  size.innerHTML=opts.map(o=>`<option>${o}</option>`).join('');
+  if(opts.includes(cur)) size.value=cur;   // 原值仍在新清單中則保留
 }
 
 // 房間號選 Other（value 為空）才顯示「自訂房間名稱」欄；選具體房間則隱藏並清空
