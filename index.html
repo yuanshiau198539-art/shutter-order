@@ -709,6 +709,7 @@ h2{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px;padding-botto
     <div class="field" style="margin-bottom:12px">
       <label>特殊選項 Special Options</label>
       <div class="check-group" style="flex-direction:column;align-items:flex-start;gap:8px">
+        <label><input type="checkbox" id="t-sp-widthout"> 寬度方向外裝The width direction is outside mount</label>
         <label><input type="checkbox" id="t-sp-rabbet"> 所有Panels之間採用Rabbet Stile</label>
         <label><input type="checkbox" id="t-sp-efascia"> 額外上飾板Extra Fascia</label>
         <label><input type="checkbox" id="t-sp-split"> Top and bottom track split at Center</label>
@@ -1921,7 +1922,7 @@ function doSaveItem(type){
       'track-supply':getV('track-supply'),'bot-track-type':getV('bot-track-type'),
       'bot-drill':getV('bot-drill'),'top-color':getV('top-color'),'bot-color':getV('bot-color'),
       ringpull:getV('ringpull'),handle:getV('handle'),
-      'sp-rabbet':getV('sp-rabbet'),'sp-efascia':getV('sp-efascia'),'sp-split':getV('sp-split'),
+      'sp-widthout':getV('sp-widthout'),'sp-rabbet':getV('sp-rabbet'),'sp-efascia':getV('sp-efascia'),'sp-split':getV('sp-split'),
       'fn-uv':getV('fn-uv'),'fn-pulley':getV('fn-pulley'),'fn-pivot':getV('fn-pivot'),'fn-predrill':getV('fn-predrill'),'fn-stile':getV('fn-stile'),
     });
   }
@@ -2472,6 +2473,7 @@ function goReport(){
       const allSpT=[];
       if(it.ringpull==='Yes') allSpT.push('拉手 Ring Pull');
       if(it.handle==='Yes') allSpT.push('把手 Handle');
+      if(it['sp-widthout'])allSpT.push('寬度方向外裝The width direction is outside mount');
       if(it['sp-rabbet'])allSpT.push('所有Panels之間採用Rabbet Stile');
       if(it['sp-efascia'])allSpT.push('額外上飾板Extra Fascia');
       if(it['sp-split'])allSpT.push('Top and bottom track split at Center');
