@@ -152,7 +152,6 @@ h2{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px;padding-botto
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn btn-secondary" onclick="importOrders()" title="從備份JSON匯入">📥 匯入備份</button>
       <button class="btn btn-secondary" onclick="exportAllOrders()" title="匯出所有訂單為JSON備份">📤 匯出備份</button>
-      <button class="btn btn-secondary" onclick="document.getElementById('quote-import-file').click()" title="讀澄映報價系統匯出的框型JSON，自動建一張新訂單並帶入品項">📥 匯入報價框型</button>
       <button class="btn btn-primary" onclick="newOrder()">＋ 建立新訂單</button>
     </div>
   </div>
@@ -226,7 +225,7 @@ h2{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px;padding-botto
       <button class="btn btn-add" onclick="openForm('track')">＋ 新增軌道樣式（摺疊/移門）</button>
     </div>
     <div style="margin-top:10px">
-      <button class="btn btn-secondary" style="width:100%" onclick="document.getElementById('quote-import-file').click()">📥 匯入報價框型（讀澄映報價系統匯出的檔）</button>
+      <button class="btn btn-secondary" style="width:100%" onclick="document.getElementById('quote-import-file').click()">匯入報價框型</button>
       <input type="file" id="quote-import-file" accept=".json,application/json" style="display:none" onchange="importQuoteShutters(event)">
       <p style="color:#999;font-size:12px;margin:6px 2px 0">自動帶入：空間、材質、顏色、葉片、拉桿、寬、高（依型式分框形/軌道），其餘細項請自行補填。</p>
     </div>
