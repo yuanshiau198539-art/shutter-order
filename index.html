@@ -152,6 +152,7 @@ h2{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px;padding-botto
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn btn-secondary" onclick="importOrders()" title="從備份JSON匯入">📥 匯入備份</button>
       <button class="btn btn-secondary" onclick="exportAllOrders()" title="匯出所有訂單為JSON備份">📤 匯出備份</button>
+      <button class="btn btn-secondary" onclick="document.getElementById('quote-import-file').click()" title="讀澄映報價系統匯出的框型JSON，自動建一張新訂單並帶入品項">📥 匯入報價框型</button>
       <button class="btn btn-primary" onclick="newOrder()">＋ 建立新訂單</button>
     </div>
   </div>
