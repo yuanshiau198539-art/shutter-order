@@ -224,6 +224,11 @@ h2{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:16px;padding-botto
       <button class="btn btn-add" onclick="openForm('hinge')">＋ 新增框形樣式（花邊/合頁）</button>
       <button class="btn btn-add" onclick="openForm('track')">＋ 新增軌道樣式（摺疊/移門）</button>
     </div>
+    <div style="margin-top:10px">
+      <button class="btn btn-secondary" style="width:100%" onclick="document.getElementById('quote-import-file').click()">📥 匯入報價框型（讀澄映報價系統匯出的檔）</button>
+      <input type="file" id="quote-import-file" accept=".json,application/json" style="display:none" onchange="importQuoteShutters(event)">
+      <p style="color:#999;font-size:12px;margin:6px 2px 0">自動帶入：空間、材質、顏色、葉片、拉桿、寬、高（依型式分框形/軌道），其餘細項請自行補填。</p>
+    </div>
   </div>
   <div class="btn-row">
     <button class="btn btn-secondary no-print" onclick="goStep(0)">← 訂單列表</button>
@@ -1210,6 +1215,56 @@ function loadOrder(id){
   goStep(2);
 }
 
+/* ===== 匯入報價系統匯出的框型品項 ===== */
+function blankItem(kind){
+  const base={type:kind,room:'',program:'',motor:'',material:'',qty:'1',measure:'',width:'',height:'',
+    louvre:'',rod:'',color:'','hinge-color':'',panel:'','panel-custom':'','panel-qty':'',stile:'','stile-lower':'',notes:'',
+    midtype:'',mid1:'',mid2:'','split-rod':'','split-rod-custom':'','split-rod-custom2':'',
+    mount:'',install:'',concealed:'','fixed-louver':'',tbar:'','main-tcb':[],frame:'',buildout:'',
+    fl:'',fr:'',ft:'',fb:'',dhung:'',dhloc:'','dhloc-custom':'','panel-lower':'','lower-tcb':[],
+    htbar:'','htbar-size':'',ringpull:'',handle:'','pre-l':'','pre-r':'','pre-t':'','pre-b':'',
+    'sp-door':'','sp-hloose':'','sp-mloose':'','sp-lmag':'','sp-button':'','sp-sbt':'','sp-sbb':'','sp-sbtb':'','sp-bbt':'','sp-bbb':'','sp-bbtb':'','sp-round':'',
+    'fn-uv':'','fn-plug':'','fn-stile':'','fn-tpost':'','fn-drill':'',
+    'track-type':'',floating:'',boxout:'','boxout-size':'','header-len':'','top-track':'','bot-track':'','panel-type':'',
+    lbl:'',lbr:'','lbl-type':'','lbr-type':'','fascia-l':'','fascia-r':'','track-supply':'','bot-track-type':'','bot-drill':'','top-color':'','bot-color':'',
+    'sp-widthout':'','sp-rabbet':'','sp-efascia':'','sp-split':'','fn-pulley':'','fn-pivot':'','fn-predrill':'',
+    timbers:[],images:[]};
+  return base;
+}
+function importQuoteShutters(ev){
+  const f=ev.target.files&&ev.target.files[0]; if(!f)return;
+  const rd=new FileReader();
+  rd.onload=()=>{
+    let data; try{data=JSON.parse(rd.result);}catch(e){alert('檔案格式錯誤，請確認是「澄映報價系統」匯出的框型 JSON。');ev.target.value='';return;}
+    const recs=(data&&data.items)||[];
+    if(!recs.length){alert('檔案裡沒有框型品項。');ev.target.value='';return;}
+    if(!currentOrderId){ newOrder(); const noEl=document.getElementById('s1-no'); if(noEl&&data.案名)noEl.value=data.案名; }
+    const MAT={'雅椴實木':'松木','優質椴木':'椴木','桐木':'桐木','防水塑鋁':'PVC'};
+    const LOU={'63.5':'63mm Elliptical Louver','76.2':'77mm Elliptical Louver','88.9':'89mm Elliptical Louver','114':'114mm Elliptical Louver'};
+    const ROD={'有拉桿':'Centre(正常)','拉桿隱形':'齒輪齒條Easy Tilt'};
+    const ROOMS=['客廳','主臥室','臥室','餐廳','廚房','書房','浴室','小孩房','孝親房','辦公室','衛生間','閣樓','樓梯'];
+    let added=0;
+    recs.forEach(r=>{
+      const kind=r.kind==='track'?'track':'hinge';
+      const note=[];
+      const sp=(r.空間||'').trim();
+      let room=ROOMS.includes(sp)?sp:'Other'; if(room==='Other'&&sp)note.push('空間:'+sp);
+      const material=MAT[r.材質]||''; if(!material&&r.材質)note.push('材質:'+r.材質);
+      const louvre=LOU[String(r.葉片||'').trim()]||''; if(!louvre&&r.葉片)note.push('葉片:'+r.葉片);
+      const rod=ROD[(r.拉桿||'').trim()]||''; if(!rod&&r.拉桿)note.push('拉桿:'+r.拉桿);
+      const d=blankItem(kind);
+      d.room=room; d.material=material; d.louvre=louvre; d.rod=rod;
+      d.color=r.顏色||''; d.width=String(r.寬||''); d.height=String(r.高||''); d.qty=String(r.數量||'1');
+      if(note.length) d.notes='（報價帶入）'+note.join('、');
+      items.push(d); added++;
+    });
+    if(currentOrderId) saveCurrentOrder();
+    renderSummary(); goStep(2);
+    showToast('✅ 已匯入 '+added+' 筆框型品項到品項管理');
+    ev.target.value='';
+  };
+  rd.readAsText(f,'utf-8');
+}
 function saveCurrentOrder(){
   loadAllOrders();
   const date=document.getElementById('s1-date')?.value||'';
