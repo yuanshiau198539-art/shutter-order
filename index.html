@@ -1243,6 +1243,8 @@ function importQuoteShutters(ev){
     const LOU={'63.5':'63mm Elliptical Louver','76.2':'77mm Elliptical Louver','88.9':'89mm Elliptical Louver','114':'114mm Elliptical Louver'};
     const ROD={'有拉桿':'Centre(正常)','拉桿隱形':'齒輪齒條Easy Tilt'};
     const ROOMS=['客廳','主臥室','臥室','餐廳','廚房','書房','浴室','小孩房','孝親房','辦公室','衛生間','閣樓','樓梯'];
+    const HINGE=['Pure White','Pearl','Bisque','Black','Antique Brass','Bright Brass','Nickel Plated','Stainless Steel','Option 3 Hidden Hinge'];
+    const normHinge=v=>{v=(v||'').trim();if(!v)return'';const hit=HINGE.find(h=>h.toLowerCase()===v.toLowerCase());return hit||v;};
     let added=0;
     recs.forEach(r=>{
       const kind=r.kind==='track'?'track':'hinge';
@@ -1255,6 +1257,8 @@ function importQuoteShutters(ev){
       const d=blankItem(kind);
       d.room=room; d.material=material; d.louvre=louvre; d.rod=rod;
       d.color=r.顏色||''; d.width=String(r.寬||''); d.height=String(r.高||''); d.qty=String(r.數量||'1');
+      const hc=normHinge(r.合頁顏色); d['hinge-color']=hc;
+      if(r.合頁顏色 && !HINGE.includes(hc)) note.push('合頁顏色:'+r.合頁顏色);
       if(note.length) d.notes='（報價帶入）'+note.join('、');
       items.push(d); added++;
     });
