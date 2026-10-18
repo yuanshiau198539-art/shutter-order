@@ -1238,7 +1238,10 @@ function importQuoteShutters(ev){
     let data; try{data=JSON.parse(rd.result);}catch(e){alert('檔案格式錯誤，請確認是「澄映報價系統」匯出的框型 JSON。');ev.target.value='';return;}
     const recs=(data&&data.items)||[];
     if(!recs.length){alert('檔案裡沒有框型品項。');ev.target.value='';return;}
-    if(!currentOrderId){ newOrder(); const noEl=document.getElementById('s1-no'); if(noEl&&data.案名)noEl.value=data.案名; }
+    if(!currentOrderId){ newOrder(); }
+    // 案名→客戶名稱、日期→訂購日期（欄位為空才帶，避免蓋掉已填的；訂單號碼留空，轉正式再自動給號）
+    const clientEl=document.getElementById('s1-client'); if(clientEl && data.案名 && !clientEl.value.trim()) clientEl.value=data.案名;
+    const dateEl=document.getElementById('s1-date'); if(dateEl && data.日期 && !dateEl.value) dateEl.value=data.日期;
     const MAT={'雅椴實木':'松木','優質椴木':'椴木','桐木':'桐木','防水塑鋁':'PVC'};
     const LOU={'63.5':'63mm Elliptical Louver','76.2':'77mm Elliptical Louver','88.9':'89mm Elliptical Louver','114':'114mm Elliptical Louver'};
     const ROD={'有拉桿':'Centre(正常)','拉桿隱形':'齒輪齒條Easy Tilt'};
@@ -1258,6 +1261,7 @@ function importQuoteShutters(ev){
       d.color=r.顏色||''; d.width=String(r.寬||''); d.height=String(r.高||''); d.qty=String(r.數量||'1');
       const hc=normHinge(r.合頁顏色); d['hinge-color']=hc;
       if(r.合頁顏色 && !HINGE.includes(hc)) note.push('合頁顏色:'+r.合頁顏色);
+      const struct=(r.結構||'').trim(); if(struct) d['panel-custom']=struct;   // 結構（門片代號 L/R/F/B/T）帶入 PANEL 結構自訂欄
       if(note.length) d.notes='（報價帶入）'+note.join('、');
       items.push(d); added++;
     });
