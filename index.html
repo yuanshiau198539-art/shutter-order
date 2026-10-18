@@ -1249,13 +1249,12 @@ function importQuoteShutters(ev){
     recs.forEach(r=>{
       const kind=r.kind==='track'?'track':'hinge';
       const note=[];
-      const sp=(r.空間||'').trim();
-      let room=ROOMS.includes(sp)?sp:'Other'; if(room==='Other'&&sp)note.push('空間:'+sp);
+      const sp=(r.空間||'').trim();   // 空間直接帶入房間號；fillForm 會自動判斷：標準房間選下拉，否則放進「自訂房間名稱」
       const material=MAT[r.材質]||''; if(!material&&r.材質)note.push('材質:'+r.材質);
       const louvre=LOU[String(r.葉片||'').trim()]||''; if(!louvre&&r.葉片)note.push('葉片:'+r.葉片);
       const rod=ROD[(r.拉桿||'').trim()]||''; if(!rod&&r.拉桿)note.push('拉桿:'+r.拉桿);
       const d=blankItem(kind);
-      d.room=room; d.material=material; d.louvre=louvre; d.rod=rod;
+      d.room=sp; d.material=material; d.louvre=louvre; d.rod=rod;
       d.color=r.顏色||''; d.width=String(r.寬||''); d.height=String(r.高||''); d.qty=String(r.數量||'1');
       const hc=normHinge(r.合頁顏色); d['hinge-color']=hc;
       if(r.合頁顏色 && !HINGE.includes(hc)) note.push('合頁顏色:'+r.合頁顏色);
